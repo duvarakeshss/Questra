@@ -67,5 +67,3 @@ export async function search(query) {
   const { data } = await api.post('/search', { query })
   return data
 }
-
-export default api

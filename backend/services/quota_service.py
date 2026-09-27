@@ -106,7 +106,7 @@ def peek(subject: str, limit: int | None, authenticated: bool) -> QuotaInfo:
     if limit is None:
         return QuotaInfo(authenticated=authenticated, limit=None, used=0, remaining=None)
     _, used = _read(subject)
-    return QuotaInfo(authenticated=False, limit=limit, used=used, remaining=max(limit - used, 0))
+    return QuotaInfo(authenticated=authenticated, limit=limit, used=used, remaining=max(limit - used, 0))
 
 
 def check_and_consume(subject: str, limit: int | None, authenticated: bool = False) -> QuotaInfo:
@@ -120,4 +120,4 @@ def check_and_consume(subject: str, limit: int | None, authenticated: bool = Fal
 
     _write(store, subject)
     used += 1
-    return QuotaInfo(authenticated=False, limit=limit, used=used, remaining=max(limit - used, 0))
+    return QuotaInfo(authenticated=authenticated, limit=limit, used=used, remaining=max(limit - used, 0))

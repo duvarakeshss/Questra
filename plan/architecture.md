@@ -1,19 +1,19 @@
 # Questra — Architecture
 
-Questra is a multimodal intent-aware query discovery system. It accepts any combination of
-**image, voice, and text**, fuses them into a single multimodal intent, generates candidate
-search queries, scores them for intentionality, selects a diverse subset with MMR, lets the
-user confirm or edit a query, then searches and semantically reranks the results.
+Questra is a multimodal, intent-aware query discovery app. It accepts any combination of
+**image, voice, and text**, fuses them into one intent, generates candidate queries, scores them
+for intentionality, selects a diverse subset with MMR, lets the user confirm or edit a query,
+then searches and semantically reranks the results. It now also has **accounts and a free-tier
+quota** (Supabase) and a **conversation-style UI**.
 
 ```
 image + voice + text  →  fusion  →  candidate generation  →  intentionality scoring
       →  MMR diversity  →  user confirmation  →  search  →  semantic reranking  →  results
 ```
 
-This document is the canonical architecture reference. For deeper rationale, see the
-[design specification](../docs/superpowers/specs/2026-09-22-questra-design.md). The concept lives
-in [idea.md](idea.md), the build plan in [plan.md](plan.md), and the task breakdown in
-[tasks.md](tasks.md).
+This is the canonical architecture reference for the code as implemented. Setup and commands
+live in [agent.md](agent.md) and [supabase-setup.md](supabase-setup.md); the concept is in
+[idea.md](idea.md).
 
 ---
 
@@ -21,535 +21,464 @@ in [idea.md](idea.md), the build plan in [plan.md](plan.md), and the task breakd
 
 ### Goals
 
-- Accept image, voice, and text inputs in any combination (at least one required).
-- Generate candidate search queries from the fused multimodal context (default 12, configurable).
-- Score each candidate for intentionality — how well it captures the user's intent.
-- Select a diverse subset (3–5) using Maximal Marginal Relevance.
+- Accept image, voice, and text in any combination (at least one required).
+- Generate candidate queries from the fused context (default 12, configurable).
+- Score each candidate for intentionality and select a diverse subset (3–5) with MMR.
 - Let the user confirm, edit, or write a custom query before searching.
 - Search via SerpAPI and rerank results by semantic similarity.
-- Run as a local prototype with no persistent storage and no auth.
+- **Accounts + free-tier quota:** logged-out visitors get a small number of free suggestion
+  generations, then sign in (email + password + emailed OTP) for unlimited use.
+- Present it all as a modern, dark "chat product" UI.
 
 ### Non-Goals
 
-- Production deployment, scaling, or multi-user support.
-- User accounts, sessions, or saved search history.
+- Production deployment, scaling, or multi-user support beyond the above.
 - Real-time streaming of LLM responses.
-- Mobile-optimized UI.
-- Search engines other than Google (reached through SerpAPI).
-- Reinforcement-learning training of any kind (see [§17](#17-research-framing)).
+- Mobile-native apps.
+- Search engines other than Google (via SerpAPI).
+- Reinforcement-learning training of any kind (see [§15](#15-research-framing)).
+
+> Note: "no auth / no database" was a v1 non-goal. Accounts and a Supabase database are now in
+> scope (see [§3.3](#33-auth--free-query-quota-supabase)).
 
 ---
 
 ## 2. System Context
 
 ```
-                       ┌──────────────────────────────┐
-                       │      Browser (user)          │
-                       └──────────────┬───────────────┘
-                                      │
-                       ┌──────────────▼───────────────┐
-                       │   Frontend — React 18 + Vite │
-                       │   (3-stage SPA, axios)       │
-                       └──────────────┬───────────────┘
-                                      │  HTTP / JSON  (multipart for uploads)
-                       ┌──────────────▼───────────────┐
-                       │   Backend — Python + FastAPI │
-                       │                              │
-                       │   API Layer                  │
-                       │     routes_health            │
-                       │     routes_query             │
-                       │     routes_search            │
-                       │            │                 │
-                       │   Pipeline Layer             │
-                       │     speech  vision  fusion   │
-                       │     candidate_gen  scoring   │
-                       │     diversity  search  rerank│
-                       │            │                 │
-                       │   Services Layer             │
-                       │     llm_service (Groq)       │
-                       │     embedding_service (ST)   │
-                       │     search_service (SerpAPI) │
-                       └──────┬───────────────┬───────┘
-                              │               │
-              ┌───────────────▼──┐     ┌──────▼──────────────┐
-              │  Groq API         │     │  SerpAPI            │
-              │  · Llama 4 (vision)│    │  · Google results   │
-              │  · Whisper (STT)   │    │                     │
-              │  · Llama 3.3 (text)│    └─────────────────────┘
-              └───────────────────┘
-                              │
-              ┌───────────────▼───────────────┐
-              │  Sentence Transformers (local) │
-              │  all-MiniLM-L6-v2 (CPU)        │
-              └───────────────────────────────┘
+                    ┌──────────────────────────────────────────┐
+                    │           Browser (React 18 + Vite)        │
+                    │  chat UI · composer · auth modal · quota   │
+                    └───────────────┬───────────────┬───────────┘
+                                    │               │
+                    supabase-js     │               │  /api (X-Anon-Id, Bearer)
+                    (auth + session)│               │
+                    ┌───────────────▼───┐   ┌───────▼────────────────────────┐
+                    │  Supabase Auth    │   │  Backend — FastAPI              │
+                    │  (email + OTP)    │   │   API → Pipeline → Services     │
+                    └───────────────────┘   └───┬───────────────┬────────────┘
+                                                │               │
+                              ┌─────────────────▼──┐   ┌────────▼─────────┐
+                              │ Groq (vision/STT/  │   │ SerpAPI + local  │
+                              │ text generation)   │   │ SentenceTransform│
+                              └────────────────────┘   └──────────────────┘
+                                                │
+                              ┌─────────────────▼───────────────────────────┐
+                              │ Supabase Postgres — public.query_usage      │
+                              └─────────────────────────────────────────────┘
 ```
 
-The backend is the only component that holds secrets and talks to external providers. The
-frontend never sees an API key.
+The backend is the only component that holds secrets and talks to Groq/SerpAPI/Supabase with the
+service key. The browser only ever receives public values (Supabase URL + publishable/anon key).
 
 ---
 
-## 3. Component Architecture
+## 3. Backend Architecture
 
-### 3.1 Frontend — React + Vite
+### 3.1 Layering
 
-A single-page application with three stages that map directly to the user journey. State is
-plain React `useState` — a three-stage flow does not justify a state library.
+Strict one-way dependency: **API → Pipeline → Services**. `evaluation/` is a peer, offline
+consumer that sits *above* both (it imports pipeline + services but nothing imports it).
 
-| Stage | Components | Entered when |
-|-------|-----------|--------------|
-| `input` | `ImageInput`, `VoiceInput`, `TextInput`, "Generate Queries" button | Default, and after "New Search" |
-| `suggestions` | `QuerySuggestions`, `QueryEditor` | Suggestions API returns |
-| `results` | `SearchResults` | Search API returns |
+```
+        ┌──────────────────────────────────────────────┐
+        │  API layer (api/)                            │
+        │   routes_* · deps (auth + subject)           │
+        └───────────────┬──────────────────────────────┘
+                        │
+        ┌───────────────▼──────────────────────────────┐
+        │  Pipeline layer (pipeline/)                  │
+        │   speech vision fusion candidate_gen         │
+        │   scoring diversity search rerank            │
+        └───────────────┬──────────────────────────────┘
+                        │
+        ┌───────────────▼──────────────────────────────┐
+        │  Services layer (services/)                  │
+        │   llm_service · embedding_service            │
+        │   search_service · supabase_client           │
+        │   auth_service · quota_service               │
+        └──────────────────────────────────────────────┘
 
-State held in `App.jsx`:
+        evaluation/  →  (offline) imports pipeline + services
+```
 
-- `stage`: `"input"` | `"suggestions"` | `"results"`
-- `suggestions`: the `SuggestionResponse` payload
-- `results`: the `SearchResponse` payload
-- `loading`: boolean plus a contextual message string
+Rules: routes parse/validate and delegate; pipeline modules do one job and don't reach into each
+other's internals; external providers sit behind services.
 
-Voice capture uses the browser `MediaRecorder` API (record → pulsing indicator → stop → Blob),
-with an "upload audio file" fallback. All HTTP goes through `src/services/api.js`; styling is
-Tailwind CSS.
+### 3.2 Modules
 
-### 3.2 Backend — Python + FastAPI
-
-Three layers, with a strict one-way dependency: **API → Pipeline → Services**.
-
-1. **API layer** (`api/`) — HTTP routes. Parses and validates requests, maps typed errors to
-   HTTP responses, returns Pydantic responses. **No business logic.** Auth/quota are resolved
-   here via dependencies (`api/deps.py`) that delegate to services.
-2. **Pipeline layer** (`pipeline/`) — one responsibility per module (speech→text, image→
-   description, fuse, generate, score, select, search, rerank). Modules orchestrate services
-   but never reach into each other's internals.
-3. **Services layer** (`services/`) — thin wrappers around externals (Groq, SerpAPI, Supabase)
-   and the local embedding model. Stateless except for the embedding-model singleton.
-   `supabase_client`, `auth_service` and `quota_service` live here; the service-role key never
-   leaves the backend.
+| Module | Responsibility |
+|--------|----------------|
+| `api/deps.py` | `current_user` (Bearer → `AuthUser`), `client_subject` (user / `X-Anon-Id` / IP) |
+| `api/routes_health.py` | `GET /api/health` |
+| `api/routes_me.py` | `GET /api/me` — auth + quota snapshot |
+| `api/routes_query.py` | `POST /api/query/suggestions` — validates input, consumes quota, runs the pipeline |
+| `api/routes_search.py` | `POST /api/search` — search + rerank (not metered) |
+| `pipeline/speech.py` | audio bytes → transcript (validates type/size) |
+| `pipeline/vision.py` | image bytes → description (validates type/size) |
+| `pipeline/fusion.py` | normalize modalities → `MultimodalContext`; `build_context_prompt` |
+| `pipeline/candidate_gen.py` | context → N query strings (JSON, fallbacks, dedupe) |
+| `pipeline/scoring.py` | LLM-judge intent scores → filtered `QueryCandidate`s |
+| `pipeline/diversity.py` | MMR selection → ranked `QuerySuggestion`s |
+| `pipeline/search.py` | query → raw results (SerpAPI) |
+| `pipeline/rerank.py` | cosine-similarity rerank → top-K `SearchResult`s |
+| `services/llm_service.py` | Groq wrapper (transcribe / describe / complete), retries |
+| `services/embedding_service.py` | lazy SentenceTransformer singleton + cosine similarity |
+| `services/search_service.py` | SerpAPI wrapper + normalization |
+| `services/supabase_client.py` | lazy admin (secret) + public (publishable) clients |
+| `services/auth_service.py` | validate a Supabase access token → `AuthUser` |
+| `services/quota_service.py` | windowed usage counting; Supabase-first with SQLite fallback |
+| `models/schemas.py` | Pydantic v2 request/response + domain models |
+| `config/settings.py` | Pydantic Settings from `.env` + key-alias properties |
+| `evaluation/*` | offline metrics, baselines, benchmark harness, CLI |
 
 ### 3.3 Auth & free-query quota (Supabase)
 
-Auth (email + password + emailed OTP) and the quota table run on **Supabase**. The frontend
-authenticates with `supabase-js` and sends `Authorization: Bearer <token>`; the backend validates
-it via Supabase (`auth_service`) and meters usage in `public.query_usage`:
+- The browser authenticates with **Supabase Auth** (email + password, OTP email confirmation) and
+  sends the access token as `Authorization: Bearer <token>`.
+- `api/deps.current_user` validates the token through Supabase (`auth_service`). No token → anonymous.
+- `POST /api/query/suggestions` is **metered**:
+  - signed in → unlimited;
+  - anonymous → `ANONYMOUS_FREE_QUERIES` (default **2**), keyed by `X-Anon-Id`, else client IP.
+  - Over the limit → `429 QUOTA_EXCEEDED`; the frontend opens the login popup.
+- `quota_service` counts rows in `public.query_usage` inside a rolling `QUOTA_WINDOW_HOURS`
+  window. If that table is unreachable (or Supabase is unconfigured) it **falls back to a local
+  SQLite file** (`QUOTA_DB_PATH`) so the limit always holds — it never silently runs unmetered.
+- The service-role/secret key is **backend-only**; the frontend only gets the publishable/anon key.
 
-- Logged-out visitors get `ANONYMOUS_FREE_QUERIES` (default 2) suggestion generations, keyed by
-  `X-Anon-Id` (falling back to client IP); the next call returns `429 QUOTA_EXCEEDED`.
-- Signed-in users are unlimited.
-- Setup steps live in [supabase-setup.md](supabase-setup.md).
+### 3.4 Evaluation (offline)
 
-These boundaries are what make each pipeline module independently testable and keep the
-provider choice swappable.
+`evaluation/` scores the pipeline against the objectives in `idea.md` (§20–21): ranking metrics,
+intentionality and diversity metrics, the four baselines plus the full Questra selector, and a
+benchmark harness (`python -m evaluation.run`).
 
 ---
 
-## 4. Directory Structure
+## 4. Frontend Architecture
+
+A single-page **chat product**: a left rail of past searches, a centered conversation thread, and a
+composer pinned at the bottom.
+
+```
+┌───────────────┬────────────────────────────────────────┐
+│ QUESTRA       │  thread, centered (max ~768px)         │
+│ + New search  │   user turn · assistant turn           │
+│ conversations │   suggestion cards / result cards      │
+│ (hover: 🗑)   │                                        │
+│ ── account ── │  ┌────────── composer ──────────────┐  │
+│ email / sign  │  │ [image][voice][text]  → Search    │  │
+└───────────────┴────────────────────────────────────────┘
+```
+
+### Components (`src/components/`)
+
+| Component | Responsibility |
+|-----------|----------------|
+| `Sidebar` | Conversation list (Today / 7 days / Earlier), hover-reveal delete + confirm, account footer |
+| `Composer` | Textarea, image picker, MediaRecorder voice capture (client-side limits, mic-error mapping, file fallback) |
+| `ChatMessage` | Renders a message by `kind`: `thinking` / `error` / `gate` / `suggestions` / `results` |
+| `QuerySuggestions` + `QueryEditor` | Suggestion cards with % match, inline edit, custom query, regenerate |
+| `SearchResults` | Result cards (host, % match, snippet, thumbnail) + empty/retry state |
+| `AuthModal` | Sign up → OTP → verify, and sign in |
+| `QuotaBadge` | Header pill: "N free queries left" / "Unlimited" |
+| `Icons`, `LoadingSpinner` | SVG set and a small loading indicator |
+
+### Services & hooks
+
+- `services/supabase.js` — builds the supabase-js client from `VITE_SUPABASE_URL` /
+  `VITE_SUPABASE_ANON_KEY`, or `null` when unset.
+- `services/api.js` — one axios instance; a request interceptor attaches `X-Anon-Id` (a persisted
+  UUID) and `Authorization: Bearer <token>` from the live session; helpers `extractError`,
+  `errorCode`, `isQuotaError`, `isUnauthorized`, `getMe`, `generateSuggestions`, `search`.
+- `hooks/useAuth.js` — session state (`getSession` + `onAuthStateChange`) plus `signUp`,
+  `verifyOtp`, `signIn`, `signOut`.
+
+### State (`App.jsx`)
+
+`conversations` + `activeId` (persisted to `localStorage`), `account` (from `GET /api/me`),
+`busy`, `error`, `sidebarOpen`, `authOpen`/`authMessage`, and a `gateRef` holding the request that
+hit the quota. Generation is a single `runGeneration(messageId, inputs)` used by both submit and
+regenerate; its error path handles quota (`429` → gate card + auth modal), session expiry (`401` →
+sign out + re-auth), and everything else (error card).
+
+---
+
+## 5. Design System
+
+Dark "violet obsidian" theme (`tailwind.config.js`, `index.css`):
+
+- **Color:** layered dark surfaces (`#08070F` base → `#0E0C18`/`#141126`/`#221D3C`), electric-violet
+  brand `#7C5CFF`, gold `#F5B544` **reserved for confidence scores**, mint `#0FD6A5` for state.
+- **Type:** **Bricolage Grotesque** (display), **Inter** (UI), tabular figures for scores.
+- **Surface treatment:** a `.glass` blur used for the top bar, sidebar, and composer; a single
+  aurora gradient behind the hero. Hairline white/10 borders; depth via layered surfaces.
+- Quality floor: responsive to mobile, visible focus rings, `prefers-reduced-motion` respected.
+
+---
+
+## 6. Directory Structure
 
 ```
 Questra/
 ├── backend/
-│   ├── app.py                    # FastAPI app + CORS + startup
-│   ├── api/
-│   │   ├── routes_health.py      # GET /api/health
-│   │   ├── routes_query.py       # POST /api/query/suggestions
-│   │   └── routes_search.py      # POST /api/search
-│   ├── pipeline/
-│   │   ├── speech.py             # audio → text (Whisper)
-│   │   ├── vision.py             # image → description (Llama 4)
-│   │   ├── fusion.py             # combine modalities → context
-│   │   ├── candidate_gen.py      # context → N candidate queries
-│   │   ├── scoring.py            # intentionality scoring (LLM judge)
-│   │   ├── diversity.py          # MMR selection
-│   │   ├── search.py             # search orchestration
-│   │   └── rerank.py             # semantic reranking
-│   ├── services/
-│   │   ├── llm_service.py        # Groq client wrapper
-│   │   ├── embedding_service.py  # Sentence Transformer wrapper
-│   │   └── search_service.py     # SerpAPI wrapper
-│   ├── models/
-│   │   └── schemas.py            # Pydantic models
-│   ├── config/
-│   │   └── settings.py           # Pydantic Settings from .env
-│   ├── tests/                    # pytest unit tests
+│   ├── app.py                     # FastAPI app: CORS, error handler, routers
+│   ├── errors.py                  # QuestraError hierarchy → (code, HTTP status)
+│   ├── conftest.py                # test path + hermetic Supabase/quota fixtures
+│   ├── api/                       # deps.py, routes_health.py, routes_me.py,
+│   │                              #   routes_query.py, routes_search.py
+│   ├── pipeline/                  # speech, vision, fusion, candidate_gen,
+│   │                              #   scoring, diversity, search, rerank
+│   ├── services/                  # llm_service, embedding_service, search_service,
+│   │                              #   supabase_client, auth_service, quota_service
+│   ├── models/schemas.py          # Pydantic v2 models
+│   ├── config/settings.py         # Pydantic Settings from .env
+│   ├── evaluation/                # metrics, intentionality, diversity, baselines,
+│   │                              #   harness, dataset, run
+│   ├── supabase/schema.sql        # public.query_usage
+│   ├── tests/                     # 11 pytest modules (auth, quota, pipeline, api)
 │   ├── requirements.txt
 │   ├── .env.example
 │   └── README.md
 ├── frontend/
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── ImageInput.jsx
-│   │   │   ├── VoiceInput.jsx
-│   │   │   ├── TextInput.jsx
-│   │   │   ├── QuerySuggestions.jsx
-│   │   │   ├── QueryEditor.jsx
-│   │   │   ├── SearchResults.jsx
-│   │   │   └── LoadingSpinner.jsx
-│   │   ├── pages/
-│   │   │   └── Home.jsx
-│   │   ├── services/
-│   │   │   └── api.js
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
+│   │   ├── components/            # Sidebar, Composer, ChatMessage, QuerySuggestions,
+│   │   │                          #   QueryEditor, SearchResults, AuthModal,
+│   │   │                          #   QuotaBadge, Icons, LoadingSpinner
+│   │   ├── hooks/useAuth.js
+│   │   ├── services/              # api.js, supabase.js
+│   │   ├── App.jsx, main.jsx, index.css
 │   ├── index.html
-│   ├── package.json
-│   ├── vite.config.js
-│   ├── tailwind.config.js
-│   └── postcss.config.js
-├── plan/                         # all planning + design docs
-│   ├── idea.md                   # concept + research motivation
-│   ├── plan.md                   # implementation plan
-│   ├── tasks.md                  # phase / task breakdown
-│   ├── architecture.md           # this file
-│   └── agent.md                  # agent/dev operating guide
-└── docs/                         # superpowers design spec
+│   ├── package.json, vite.config.js, tailwind.config.js, postcss.config.js
+│   └── .env.example
+├── plan/                          # all planning + design docs
+│   ├── idea.md plan.md tasks.md architecture.md agent.md supabase-setup.md
+└── docs/                          # superpowers design spec (gitignored)
 ```
 
 ---
 
-## 5. Data Flow
+## 7. Data Flows
 
-### 5.1 Query suggestions
-
-```
-User (image, audio, text)
-  → speech.py      : audio_bytes  → transcript        (Groq Whisper)
-  → vision.py      : image_bytes  → description       (Groq Llama 4 Scout)
-  → fusion.py      : modalities   → MultimodalContext
-  → candidate_gen.py: context     → 12 candidate query strings (Groq LLM)
-  → scoring.py     : candidates + context → scored QueryCandidates (Groq LLM judge)
-  → diversity.py   : scored candidates → 5 diverse QuerySuggestions (MMR + embeddings)
-  → SuggestionResponse
-```
-
-### 5.2 Search
+### 7.1 Query suggestions (metered)
 
 ```
-User confirms / edits query
-  → search.py : query → 10 raw results      (SerpAPI)
-  → rerank.py : query + results → 5 reranked SearchResults (cosine similarity)
-  → SearchResponse
+inputs (image, audio, text)
+  → api/routes_query: validate at least one input
+  → deps: resolve user + subject
+  → quota_service.check_and_consume(subject, limit)      # 429 if over
+  → pipeline.speech.process_audio        → transcript     (Groq Whisper)
+  → pipeline.vision.process_image        → description    (Groq vision)
+  → pipeline.fusion.fuse_modalities      → MultimodalContext
+  → pipeline.candidate_gen.generate_candidates → 12 queries (Groq LLM)
+  → pipeline.scoring.score_candidates    → scored candidates (Groq LLM judge)
+  → pipeline.diversity.select_diverse    → 5 QuerySuggestions (MMR + embeddings)
+  → SuggestionResponse { suggestions, context, quota }
+```
+
+### 7.2 Search (not metered)
+
+```
+query → pipeline.search.execute_search → 10 raw results (SerpAPI)
+      → pipeline.rerank.rerank_results → 5 SearchResults (cosine similarity)
+      → SearchResponse
+```
+
+### 7.3 Auth & quota
+
+```
+signup   : supabase.auth.signUp(email, password) → OTP email
+verify   : supabase.auth.verifyOtp(email, token) → session (JWT)
+requests : api.js attaches X-Anon-Id + Bearer token
+           backend validates token → user → unlimited
+           else anon → 2 free → 429 QUOTA_EXCEEDED → AuthModal
 ```
 
 ---
 
-## 6. Technology Stack
+## 8. Technology Stack
 
 | Component | Choice | Rationale |
 |-----------|--------|-----------|
-| Backend framework | FastAPI | Async, auto OpenAPI docs, Pydantic validation |
-| Frontend framework | React 18 + Vite 5 | Fast dev server, simple SPA |
-| Styling | Tailwind CSS | Utility-first, no component library needed |
-| LLM provider | Groq | Free tier, fast inference, one SDK for vision + speech + text |
-| Vision model | `qwen/qwen3.8-27b` | Groq vision-capable model, free tier |
-| Speech model | `whisper-large-v3` | Best accuracy, sub-second on Groq |
-| Text generation | `openai/gpt-oss-120b` | Fast, good structured JSON output |
-| Embeddings | `all-MiniLM-L6-v2` (Sentence Transformers) | 80 MB, runs on CPU, no API calls |
-| Search API | SerpAPI (`google-search-results` SDK) | Structured JSON, Google results |
-| Intentionality scoring | LLM judge (not CLIP) | Simpler, handles text constraints, one less model |
+| Backend | FastAPI | Async, OpenAPI docs, Pydantic validation |
+| Frontend | React 18 + Vite 5 | Fast dev server, simple SPA |
+| Styling | Tailwind CSS | Utility-first design tokens |
+| LLM provider | Groq | One SDK for vision + speech + text, free tier |
+| Vision model | `qwen/qwen3.8-27b` | Vision-capable and available on the free tier |
+| Speech model | `whisper-large-v3` | Fast, accurate transcription |
+| Text generation | `openai/gpt-oss-120b` | Structured JSON output, free tier |
+| Embeddings | `all-MiniLM-L6-v2` (local) | 80 MB, CPU, no API calls |
+| Search | SerpAPI (`google-search-results`) | Structured Google results |
+| Intentionality | LLM judge (not CLIP) | Reasons about text constraints CLIP cannot |
+| **Auth + DB** | **Supabase** (Auth + Postgres) | Managed email+OTP auth, RLS-backed usage table |
+| Frontend auth | `@supabase/supabase-js` | Session handling in the browser |
 
-### Why an LLM judge over CLIP for scoring
-
-CLIP compares image and text embeddings — good for "does this query match this image?" but
-blind to text-only constraints like "under 5000 rupees". The LLM judge sends every modality
-plus the candidates to Groq in one call and asks for 0–1 scores; it reasons about constraint
-matching, is simpler to implement, and avoids downloading a ~400 MB CLIP model.
-
-### Why local Sentence Transformers over an embedding API
-
-`all-MiniLM-L6-v2` is 80 MB, loads once, and runs on CPU. This removes per-request embedding
-cost and a network dependency from the MMR and reranking loops, and keeps latency predictable.
-The trade-off is a slower first load, mitigated by lazy initialization at startup.
+Note: model ids are config in `.env`; the catalog is account-specific, so verify with
+`client.models.list()` before changing them.
 
 ---
 
-## 7. Data Models
-
-Pydantic v2, defined in `backend/models/schemas.py`.
+## 9. Data Models (`backend/models/schemas.py`)
 
 ```python
-class MultimodalContext(BaseModel):
-    image_description: str | None = None
-    voice_transcript: str | None = None
-    text_input: str | None = None
-
-class QueryCandidate(BaseModel):
-    id: str              # UUID
-    query: str
-    intent_score: float  # 0.0 – 1.0
-
-class QuerySuggestion(BaseModel):
-    id: str
-    query: str
-    intent_score: float
-    diversity_rank: int  # 1 = best
-
-class SuggestionResponse(BaseModel):
-    success: bool
-    suggestions: list[QuerySuggestion]
-    context: MultimodalContext  # returned for transparency
-
-class SearchResult(BaseModel):
-    title: str
-    url: str
-    snippet: str
-    score: float                 # cosine similarity after reranking
-    thumbnail: str | None = None
-
-class SearchResponse(BaseModel):
-    success: bool
-    query: str
-    results: list[SearchResult]
-
-class ErrorDetail(BaseModel):
-    code: str                    # e.g. "NO_INPUT", "LLM_ERROR"
-    message: str
-
-class ErrorResponse(BaseModel):
-    success: bool = False
-    error: ErrorDetail
+class MultimodalContext(BaseModel): image_description, voice_transcript, text_input
+class QueryCandidate(BaseModel):    id, query, intent_score
+class QuerySuggestion(BaseModel):   id, query, intent_score, diversity_rank
+class QuotaInfo(BaseModel):         authenticated, limit, used, remaining
+class SuggestionResponse(BaseModel): success, suggestions, context, quota
+class MeResponse(BaseModel):         authenticated, email, quota
+class SearchRequest / SearchResult / SearchResponse
+class HealthResponse, ErrorDetail, ErrorResponse
 ```
 
 ---
 
-## 8. API Contracts
+## 10. API Contracts
 
 ### `GET /api/health`
+`{ "status": "ok", "models_loaded": true }`
 
+### `GET /api/me`
 ```json
-{ "status": "ok", "models_loaded": true }
+{ "authenticated": false, "email": null,
+  "quota": { "authenticated": false, "limit": 2, "used": 1, "remaining": 1 } }
 ```
 
-### `POST /api/query/suggestions`
+### `POST /api/query/suggestions` (multipart, metered)
+Fields `image` | `audio` | `text` (≥1). Returns `suggestions[]` + `context` + `quota`.
+Over the limit → `429 QUOTA_EXCEEDED`.
 
-**Request**: `multipart/form-data`
-
-| Field | Required | Notes |
-|-------|----------|-------|
-| `image` | one of the three | jpeg, png, webp, gif; max 10 MB |
-| `audio` | one of the three | wav, mp3, m4a, webm, ogg; max 25 MB |
-| `text`  | one of the three | form field string |
-
-At least one field must be present.
-
-**Response** (200):
-
-```json
-{
-  "success": true,
-  "suggestions": [
-    { "id": "uuid", "query": "red leather crossbody bag", "intent_score": 0.94, "diversity_rank": 1 }
-  ],
-  "context": {
-    "image_description": "A red leather handbag with gold hardware...",
-    "voice_transcript": "I want something like this but cheaper",
-    "text_input": "under 5000 rupees"
-  }
-}
-```
-
-### `POST /api/search`
-
-**Request**: `application/json`
-
-```json
-{ "query": "red leather crossbody bag under 5000 rupees" }
-```
-
-**Response** (200):
-
-```json
-{
-  "success": true,
-  "query": "red leather crossbody bag under 5000 rupees",
-  "results": [
-    { "title": "...", "url": "...", "snippet": "...", "score": 0.89, "thumbnail": "..." }
-  ]
-}
-```
+### `POST /api/search` (JSON, not metered)
+`{ "query": "..." }` → `{ success, query, results[] }`.
 
 ### Error envelope
-
-All errors return `ErrorResponse` with `success: false`, a code, and a human-readable message:
-
 ```json
-{
-  "success": false,
-  "error": { "code": "NO_INPUT", "message": "At least one input (image, audio, or text) is required" }
-}
+{ "success": false, "error": { "code": "QUOTA_EXCEEDED", "message": "..." } }
 ```
 
 ---
 
-## 9. Key Algorithms
+## 11. Key Algorithms
 
-### 9.1 Maximal Marginal Relevance (MMR)
+**MMR** (`pipeline/diversity.py`): `λ·intent_score − (1−λ)·max_similarity` vs already-selected;
+greedy selection of `SUGGESTION_COUNT`; `λ = MMR_LAMBDA` (default 0.7).
 
-Balances relevance and diversity when selecting the final suggestions from scored candidates.
-
-```
-MMR(q) = λ · intent_score(q) − (1 − λ) · max_similarity(q, already_selected)
-```
-
-- `λ = 0.7` by default, configurable (`MMR_LAMBDA`).
-- `λ = 1.0` → pure relevance (just take the top-scored candidates).
-- `λ = 0.0` → pure diversity (maximise difference from already-selected).
-- Similarity is cosine similarity over Sentence Transformer embeddings.
-
-Greedy selection:
-
-1. Select the candidate with the highest intent score.
-2. For every remaining candidate compute MMR against all selected.
-3. Select the candidate with the highest MMR.
-4. Repeat until `SUGGESTION_COUNT` suggestions are selected.
-
-### 9.2 Semantic reranking
-
-1. Embed the confirmed query with Sentence Transformers.
-2. Embed each result's snippet.
-3. Compute cosine similarity between the query and each snippet.
-4. Sort descending.
-5. Return the top `RERANK_TOP_K` results with their similarity scores.
+**Reranking** (`pipeline/rerank.py`): embed the query and each snippet, cosine similarity, sort
+descending, return the top `RERANK_TOP_K`.
 
 ---
 
-## 10. Configuration
+## 12. Configuration
 
-All configuration is environment variables loaded by Pydantic Settings from `backend/.env`.
-Nothing sensitive or tunable is hardcoded.
+All config is environment-driven (Pydantic Settings, `extra="ignore"`). Defaults shown.
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `GROQ_API_KEY` | Yes | — | Groq API key |
-| `SERPAPI_API_KEY` | Yes | — | SerpAPI key |
-| `VISION_MODEL` | No | `qwen/qwen3.8-27b` | Groq vision model |
-| `GENERATION_MODEL` | No | `openai/gpt-oss-120b` | Groq text model |
-| `WHISPER_MODEL` | No | `whisper-large-v3` | Groq speech model |
-| `EMBEDDING_MODEL` | No | `all-MiniLM-L6-v2` | Local embedding model |
-| `CANDIDATE_COUNT` | No | `12` | Queries to generate |
-| `SUGGESTION_COUNT` | No | `5` | Suggestions after MMR |
-| `MMR_LAMBDA` | No | `0.7` | Relevance vs. diversity |
-| `SEARCH_TOP_K` | No | `10` | Raw search results |
-| `RERANK_TOP_K` | No | `5` | Results after reranking |
-| `MAX_IMAGE_SIZE_MB` | No | `10` | Image upload limit |
-| `MAX_AUDIO_SIZE_MB` | No | `25` | Audio upload limit |
-| `SUPABASE_URL` | For auth/quota | — | Supabase project URL |
-| `SUPABASE_ANON_KEY` / `SUPABASE_PUBLISHABLE_KEY` | For auth/quota | — | Public browser-safe key |
-| `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY` | For auth/quota | — | Backend-only key (bypasses RLS) |
-| `ANONYMOUS_FREE_QUERIES` | No | `2` | Free suggestion generations for logged-out visitors |
-| `QUOTA_WINDOW_HOURS` | No | `24` | Rolling window for the free quota (`0` = all-time) |
-| `QUOTA_DB_PATH` | No | `quota_usage.sqlite3` | Local SQLite fallback store for the quota |
+| Variable | Default | Notes |
+|----------|---------|-------|
+| `GROQ_API_KEY` | — | required |
+| `SERPAPI_API_KEY` | — | required |
+| `SUPABASE_URL` | — | required for auth + quota |
+| `SUPABASE_ANON_KEY` / `SUPABASE_PUBLISHABLE_KEY` | — | public key (either name) |
+| `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY` | — | **backend-only** (either name) |
+| `SUPABASE_USAGE_TABLE` | `query_usage` | quota table |
+| `ANONYMOUS_FREE_QUERIES` | `2` | free suggestions for logged-out visitors |
+| `QUOTA_WINDOW_HOURS` | `24` | rolling window (`0` = all-time) |
+| `QUOTA_DB_PATH` | `quota_usage.sqlite3` | SQLite fallback store |
+| `VISION_MODEL` | `qwen/qwen3.8-27b` | |
+| `GENERATION_MODEL` | `openai/gpt-oss-120b` | |
+| `WHISPER_MODEL` | `whisper-large-v3` | |
+| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | |
+| `CANDIDATE_COUNT` / `SUGGESTION_COUNT` | `12` / `5` | |
+| `MMR_LAMBDA` | `0.7` | |
+| `SEARCH_TOP_K` / `RERANK_TOP_K` | `10` / `5` | |
+| `MAX_IMAGE_SIZE_MB` / `MAX_AUDIO_SIZE_MB` | `10` / `25` | |
+| `CORS_ORIGINS` | `http://localhost:5173` | comma-separated |
+
+Frontend (Vite): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (public).
+
+Unused keys that may sit in `.env` are ignored: `SMTP_*`, `EMAIL_*`, `SUPABASE_JWKS_URL`,
+`DATABASE_URL` (SMTP lives in the Supabase dashboard; tokens are validated via the Supabase API,
+so JWKS is not needed).
 
 ---
 
-## 11. Error Handling
+## 13. Error Handling
 
-| Error code | HTTP status | Cause |
-|------------|-------------|-------|
-| `NO_INPUT` | 400 | No image, audio, or text provided |
+| Code | HTTP | Cause |
+|------|------|-------|
+| `NO_INPUT` | 400 | No image, audio, or text |
 | `INVALID_FILE_TYPE` | 400 | Unsupported image/audio format |
-| `FILE_TOO_LARGE` | 400 | File exceeds size limit |
-| `EMPTY_QUERY` | 400 | Search called with empty/whitespace query |
-| `LLM_ERROR` | 502 | Groq API failure (timeout, rate limit, model error) |
+| `FILE_TOO_LARGE` | 400 | Upload exceeds the size limit |
+| `EMPTY_QUERY` | 400 | Search called with a blank query |
+| `UNAUTHORIZED` | 401 | Session token invalid or expired |
+| `QUOTA_EXCEEDED` | 429 | Free query limit reached |
+| `LLM_ERROR` | 502 | Groq failure |
 | `SEARCH_ERROR` | 502 | SerpAPI failure |
 | `GENERATION_FAILED` | 500 | Could not parse LLM output into queries |
 | `SCORING_FAILED` | 500 | Could not parse LLM scoring output |
-| `UNAUTHORIZED` | 401 | Session token is invalid or expired |
-| `QUOTA_EXCEEDED` | 429 | Free query limit reached — sign in to continue |
 
-Internal details (stack traces, API keys) are never exposed to the client.
+Internal details are never exposed.
 
 ---
 
-## 12. Security Constraints
+## 14. Security
 
-- Never hardcode API keys — use `.env` + Pydantic Settings.
-- Ship `.env.example` with placeholder values only.
-- Never expose API keys to the frontend — the frontend talks only to the backend.
-- Never persist user media — process uploads in memory and clean any temp files.
-- Validate every upload: enforce size limits and MIME types.
-- Sanitize user input before it enters LLM prompts.
-- Reject malformed requests via Pydantic validation at the boundary.
-- Never log API keys, sensitive user data, or raw uploaded files.
+- Secrets only in `backend/.env` (gitignored); the frontend never sees them.
+- The Supabase **secret/service-role** key is backend-only — never referenced in `VITE_*`.
+- Anonymous quota keyed by `X-Anon-Id` then IP (a browser-only limit; cleared by clearing storage).
+- Uploads processed in memory; MIME + size validated; never persisted.
+- `public.query_usage` has RLS enabled with no public policies (service role only).
+- Never log keys, raw uploads, or sensitive user data.
 
 ---
 
-## 13. Testing Strategy
+## 15. Testing
 
-Unit tests for pipeline modules (prototype scope). All external services are mocked.
+`backend/tests/` (pytest). Externals (Groq, SerpAPI, Supabase) are mocked; `conftest.py` forces a
+hermetic Supabase and a throwaway SQLite quota DB per test.
 
-| Module | What is tested |
-|--------|----------------|
-| `fusion.py` | All 7 modality combinations; missing-all error |
-| `candidate_gen.py` | JSON parsing; malformed-JSON fallback; deduplication |
-| `scoring.py` | Score parsing; threshold filtering |
-| `diversity.py` | MMR selection; λ=0 and λ=1 edge cases; duplicate inputs |
-| `rerank.py` | Correct ordering; empty results; missing snippets |
-| `search.py` | Result normalization; empty results; API errors |
-
-**Approach**: `unittest.mock.patch` for Groq and SerpAPI. Test the logic, not the externals.
+Covered: fusion (all 7 combinations), candidate generation, scoring, diversity/MMR, rerank,
+search, evaluation, auth dependencies, quota service (Supabase + fallback), and the API
+(auth + quota + error envelopes).
 
 ---
 
-## 14. Deployment (local prototype)
+## 16. Deployment (local prototype)
 
-Questra runs as two local processes; there is no auth, no database, and no persistent state.
+Two local processes, no containers:
 
-- **Backend**: Python venv + `uvicorn app:app --reload --port 8000` (see [agent.md](agent.md)).
-- **Frontend**: Vite dev server (`npm run dev`) with a proxy / base URL pointed at the backend.
-- **CORS**: the FastAPI app allows the frontend origin.
-- **API URL**: configured on the frontend so the backend host/port can change.
+- **Backend:** `uvicorn app:app --reload --port 8000` (venv active).
+- **Frontend:** `npm run dev` on 5173 (Vite proxies `/api` → 8000).
+- **Supabase:** hosted project; run `backend/supabase/schema.sql` once.
 
-Setup and run commands are in [agent.md](agent.md).
-
----
-
-## 15. Risks and Mitigations
-
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Groq model name changes | Medium | High | Model names live in `.env`, not hardcoded |
-| Groq free-tier rate limits | High | Medium | Retry with backoff in `LLMService` |
-| SerpAPI costs during dev | Medium | Low | Cache results during development |
-| Sentence Transformers slow first load | Certain | Low | Lazy-load at startup; show a loading state |
-| Browser `MediaRecorder` unsupported | Low | Low | "Upload audio file" fallback |
-| LLM JSON output unreliable | Medium | Medium | Fallback regex extraction |
-| Large images slow the pipeline | Medium | Low | Size limits + validation |
+See [agent.md](agent.md) and [supabase-setup.md](supabase-setup.md).
 
 ---
 
-## 16. Design Principles
+## 17. Risks
 
-1. **Modular architecture** — each pipeline stage is independently testable and loosely coupled.
-2. **Provider independence** — LLM and search behind service interfaces; swapping providers
-   does not touch the API layer.
-3. **No unnecessary RL** — the initial system is inference-only.
-4. **Human-in-the-loop** — generated queries are suggestions; the user inspects, edits, rejects,
-   selects, and confirms.
-5. **Explainability** — surface why a query was chosen where practical, without cluttering the UI.
-6. **Reproducibility** — candidate count, suggestion count, MMR λ, model names, and search
-   provider are all configurable.
-
----
-
-## 17. Research Framing
-
-Questra is inspired by *Multimodal Query Suggestion with Multi-Agent Reinforcement Learning
-from Human Feedback*, which optimizes two objectives: **intentionality** and **diversity**.
-
-Questra implements a practical, inference-oriented architecture using pretrained models — it
-does **not** reproduce the paper's RL pipeline. Version 1 deliberately excludes PPO,
-PolicyNet, RewardNet, REINFORCE, and large-scale RLHF. It replaces agent-based optimization
-with intentionality scoring plus MMR diversity selection, and keeps the human confirmation
-stage at the centre of the flow.
+| Risk | Mitigation |
+|------|-----------|
+| Groq model catalog is account-specific | Model ids in `.env`; verify via `client.models.list()` |
+| Groq free-tier rate limits | Retry with backoff in `LLMService` |
+| Sentence Transformers slow first load | Lazy-load at startup |
+| Supabase usage table missing | Local SQLite fallback keeps the limit enforced |
+| Anonymous quota is device-scoped | Accept for a prototype; in-app sign-in removes it |
+| LLM JSON output unreliable | Regex/line fallback extraction |
 
 ---
 
-## 18. References
+## 18. Research Framing
 
-- [idea.md](idea.md) — full concept and research motivation.
+Questra is inspired by *Multimodal Query Suggestion with Multi-Agent Reinforcement Learning from
+Human Feedback*, which optimizes **intentionality** and **diversity**. Questra implements a
+practical, inference-only architecture (LLM-judge scoring + MMR) and deliberately excludes the
+paper's RL pipeline (PPO, PolicyNet, RewardNet, REINFORCE, RLHF).
+
+---
+
+## 19. References
+
+- [idea.md](idea.md) — concept and research motivation.
 - [plan.md](plan.md) — implementation plan.
-- [tasks.md](tasks.md) — phase-by-phase task breakdown.
-- [agent.md](agent.md) — agent/developer operating guide.
-- [Design specification](../docs/superpowers/specs/2026-09-22-questra-design.md) — approved design spec.
+- [tasks.md](tasks.md) — phase-by-phase task breakdown and status.
+- [agent.md](agent.md) — operating guide for developers/agents.
+- [supabase-setup.md](supabase-setup.md) — Supabase project, auth, SMTP, schema.

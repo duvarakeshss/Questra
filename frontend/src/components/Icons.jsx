@@ -21,20 +21,6 @@ export function Brand({ className = 'h-5 w-5' }) {
   )
 }
 
-export function BrandSmall({ className = 'h-5 w-5' }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <g stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-        <circle cx="12" cy="12" r="8" strokeDasharray="1 3" />
-        <circle cx="12" cy="12" r="4.5" />
-        <polygon points="12,2 13.5,8 12,6.5 10.5,8" fill="currentColor" stroke="none" />
-        <polygon points="12,22 13.5,16 12,17.5 10.5,16" fill="currentColor" stroke="none" opacity="0.4" />
-        <path d="M16.5 16.5 L20 20" strokeWidth="2" />
-      </g>
-    </svg>
-  )
-}
-
 export function Plus({ className = 'h-4 w-4' }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -137,31 +123,6 @@ export function Alert({ className = 'h-4 w-4' }) {
   )
 }
 
-export function ChevronRight({ className = 'h-3.5 w-3.5' }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-export function Bolt({ className = 'h-4 w-4' }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M11 2L4 12h6l-1 6 7-10h-6l1-6z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-export function Layers({ className = 'h-4 w-4' }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M10 2.5L2.5 7l7.5 4.5L17.5 7 10 2.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-      <path d="M2.5 12l7.5 4.5L17.5 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
 export function Hub({ className = 'h-4 w-4' }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -189,14 +150,6 @@ export function Mail({ className = 'h-4 w-4' }) {
     <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <rect x="2.75" y="4.5" width="14.5" height="11" rx="2.25" stroke="currentColor" strokeWidth="1.4" />
       <path d="M3.5 6.5l5.4 4.1a2 2 0 002.2 0l5.4-4.1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-export function Check({ className = 'h-4 w-4' }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M4.5 10.5l3.2 3.2 7.8-8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }

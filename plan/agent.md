@@ -87,7 +87,8 @@ Leave the venv activated for every backend command. Never commit `.env` or `.ven
 
 Auth and the free-query quota need Supabase: add `SUPABASE_URL` + keys to `.env`, run
 `backend/supabase/schema.sql`, and enable email OTP + custom SMTP in the dashboard — see
-[supabase-setup.md](supabase-setup.md). Without Supabase the backend runs unmetered.
+[supabase-setup.md](supabase-setup.md). If Supabase is unconfigured (or the usage table is
+missing) the quota falls back to a local SQLite store so the limit still holds.
 
 ---
 
@@ -137,8 +138,8 @@ to a single provider.
   must never appear in the frontend or any `VITE_*` variable. Auth and the free-query quota run on
   Supabase; setup is in [supabase-setup.md](supabase-setup.md). Meter usage in `public.query_usage`
   through `services/quota_service.py` (never hardcode limits — they come from settings).
-- **Inference only.** No RL training, no database, no microservices, no vector DB unless a real
-  requirement proves it necessary.
+- **Inference only.** No RL training, no microservices, and no vector DB. A database is used only
+  for accounts and usage metering (Supabase) — never for search or model state.
 
 ---
 

@@ -63,10 +63,6 @@
     @apply px-3 py-2 text-on-surface-variant hover:bg-surface-container hover:text-on-surface;
   }
 
-  .btn-subtle {
-    @apply border border-outline-variant bg-surface-low px-3 py-2 text-body-sm text-on-surface-variant hover:border-outline hover:text-on-surface;
-  }
-
   .btn-icon {
     @apply rounded-lg p-2 text-on-surface-variant hover:bg-surface-container hover:text-on-surface;
   }
@@ -88,10 +84,6 @@
   /* ─── Chips ────────────────────────────────────────── */
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full border border-outline-variant bg-surface-low px-3 py-1.5 text-body-sm text-on-surface-variant transition-colors hover:border-outline hover:text-on-surface;
-  }
-
-  .chip-active {
-    @apply border-primary/60 bg-primary/20 text-on-surface hover:border-primary hover:text-on-surface;
   }
 
   /* ─── Numeric score (gold = confidence) ────────────── */
@@ -145,12 +137,6 @@
     background: linear-gradient(180deg, rgba(24, 20, 44, 0.78), rgba(11, 9, 20, 0.72));
     backdrop-filter: blur(20px) saturate(150%);
     -webkit-backdrop-filter: blur(20px) saturate(150%);
-  }
-
-  .glass-soft {
-    background: linear-gradient(180deg, rgba(26, 22, 48, 0.6), rgba(12, 10, 22, 0.5));
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
   }
 }
 

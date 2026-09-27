@@ -30,7 +30,7 @@ Each phase must be completed before its dependents can begin (see dependency col
 - [x] Write `backend/services/llm_service.py` — Groq client wrapper
   - [x] `__init__` — initialize Groq client with API key from settings
   - [x] `transcribe_audio(audio_bytes, filename)` → str — Groq Whisper API
-  - [x] `describe_image(image_bytes, mime_type)` → str — Groq Vision (Llama 4 Scout)
+  - [x] `describe_image(image_bytes, mime_type)` → str — Groq vision (`qwen/qwen3.8-27b`)
   - [x] `generate_candidates(context, count)` → list[str] — Groq LLM with JSON output
   - [x] `score_intentionality(context, queries)` → list[float] — Groq LLM judge
   - [x] Error handling: retries with backoff, meaningful error messages

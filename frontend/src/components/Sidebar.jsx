@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { Brand, Close, LogOut, Plus, Trash, User } from './Icons'
 
 function groupConversations(conversations) {
@@ -31,6 +33,15 @@ function timeAgo(ts) {
   return `${days}d ago`
 }
 
+function meta(conversation) {
+  const count = conversation.messages.length
+  return `${timeAgo(conversation.createdAt)} · ${count} ${count === 1 ? 'message' : 'messages'}`
+}
+
+function hasResults(conversation) {
+  return conversation.messages.some((message) => message.kind === 'results')
+}
+
 export default function Sidebar({
   conversations,
   activeId,
@@ -43,7 +54,17 @@ export default function Sidebar({
   onSignIn,
   onSignOut,
 }) {
+  const [confirmId, setConfirmId] = useState(null)
   const groups = groupConversations([...conversations].sort((a, b) => b.createdAt - a.createdAt))
+
+  function requestDelete(conversation) {
+    if (hasResults(conversation) && confirmId !== conversation.id) {
+      setConfirmId(conversation.id)
+      return
+    }
+    setConfirmId(null)
+    onDelete(conversation.id)
+  }
 
   return (
     <>
@@ -90,6 +111,7 @@ export default function Sidebar({
                 <ul className="space-y-1">
                   {group.items.map((conversation) => {
                     const isActive = conversation.id === activeId
+                    const isConfirming = confirmId === conversation.id
                     return (
                       <li key={conversation.id} className="group relative">
                         <button
@@ -104,15 +126,16 @@ export default function Sidebar({
                         >
                           <p className="truncate text-body-sm font-medium">{conversation.title}</p>
                           <p className="mt-0.5 truncate text-caption text-on-surface-variant/80">
-                            {timeAgo(conversation.createdAt)} · {conversation.messages.length} messages
+                            {meta(conversation)}
                           </p>
                         </button>
-                        {onDelete && (
+
+                        {onDelete && !isConfirming && (
                           <button
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation()
-                              onDelete(conversation.id)
+                              requestDelete(conversation)
                             }}
                             className="absolute right-1.5 top-1.5 rounded-md p-1.5 text-on-surface-variant opacity-0 transition-opacity hover:bg-white/10 hover:text-error focus-visible:opacity-100 group-hover:opacity-100"
                             aria-label={`Delete search: ${conversation.title}`}
@@ -120,6 +143,31 @@ export default function Sidebar({
                           >
                             <Trash className="h-3.5 w-3.5" />
                           </button>
+                        )}
+
+                        {isConfirming && (
+                          <div className="absolute inset-0 z-10 flex items-center justify-between gap-2 rounded-lg bg-surface-container/95 px-3 backdrop-blur-sm">
+                            <span className="text-body-sm text-on-surface">Delete this search?</span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setConfirmId(null)
+                                  onDelete(conversation.id)
+                                }}
+                                className="rounded-md bg-error px-2 py-1 text-caption font-semibold text-on-error"
+                              >
+                                Delete
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmId(null)}
+                                className="rounded-md px-2 py-1 text-caption text-on-surface-variant hover:bg-white/10 hover:text-on-surface"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </li>
                     )

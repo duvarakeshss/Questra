@@ -1,5 +1,10 @@
 # Questra — Implementation Plan
 
+> **Historical planning document.** The original plan below describes the first (v1) build. The
+> system has since gained Supabase auth + a free-query quota and a chat-product UI. For the
+> architecture **as implemented**, see [architecture.md](architecture.md); for current status see
+> [tasks.md](tasks.md). Where this file and the code disagree, the code wins.
+
 ## Context
 
 Questra is a multimodal intent-aware query discovery system that transforms image, voice, and text inputs into diverse, relevant search queries. The user uploads any combination of modalities → the system generates candidate queries → scores them for intentionality → selects diverse suggestions via MMR → the user confirms/edits → search + semantic reranking → results displayed.

@@ -6,10 +6,12 @@ import Composer from './components/Composer'
 import QuotaBadge from './components/QuotaBadge'
 import Sidebar from './components/Sidebar'
 import { Brand, Menu } from './components/Icons'
-import { extractError, generateSuggestions, getMe, isQuotaError, search } from './services/api'
+import { extractError, generateSuggestions, getMe, isQuotaError, isUnauthorized, search } from './services/api'
 import { useAuth } from './hooks/useAuth'
 
 const STORAGE_KEY = 'questra.conversations.v2'
+const GATE_MESSAGE = "You've used your free queries. Create a free account to keep searching."
+const EXPIRED_MESSAGE = 'Your session expired. Sign in again to continue.'
 
 const EXAMPLES = [
   'A cozy reading nook under $300',
@@ -115,6 +117,62 @@ export default function App() {
     }))
   }
 
+  function handleSessionExpired(messageId) {
+    auth.signOut()
+    setAccount(null)
+    setAuthMessage(EXPIRED_MESSAGE)
+    setAuthOpen(true)
+    if (messageId) {
+      replaceMessage(messageId, {
+        id: messageId,
+        role: 'assistant',
+        kind: 'error',
+        message: EXPIRED_MESSAGE,
+      })
+    }
+  }
+
+  function handleGenerationError(messageId, inputs, err) {
+    if (isQuotaError(err)) {
+      gateRef.current = { id: messageId, inputs }
+      replaceMessage(messageId, { id: messageId, role: 'assistant', kind: 'gate', message: GATE_MESSAGE })
+      setAuthMessage(GATE_MESSAGE)
+      setAuthOpen(true)
+      return
+    }
+    if (isUnauthorized(err)) {
+      handleSessionExpired(messageId)
+      return
+    }
+    replaceMessage(messageId, {
+      id: messageId,
+      role: 'assistant',
+      kind: 'error',
+      message: extractError(err),
+    })
+  }
+
+  async function runGeneration(messageId, inputs) {
+    try {
+      const data = await generateSuggestions(inputs)
+      if (data.quota) {
+        setAccount((prev) => ({ ...(prev ?? {}), authenticated: data.quota.authenticated, quota: data.quota }))
+      }
+      replaceMessage(messageId, {
+        id: messageId,
+        role: 'assistant',
+        kind: 'suggestions',
+        suggestions: data.suggestions ?? [],
+        context: data.context ?? null,
+        inputs,
+      })
+    } catch (err) {
+      handleGenerationError(messageId, inputs, err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleSubmit(inputs) {
     if (busy) return
     setError(null)
@@ -135,40 +193,7 @@ export default function App() {
       message: 'Reading your input and drafting query ideas',
     }
     appendMessages([userMessage, pending], titleFor(inputs))
-
-    try {
-      const data = await generateSuggestions(inputs)
-      if (data.quota) setAccount((prev) => ({ ...(prev ?? {}), authenticated: data.quota.authenticated, quota: data.quota }))
-      replaceMessage(pending.id, {
-        id: pending.id,
-        role: 'assistant',
-        kind: 'suggestions',
-        suggestions: data.suggestions ?? [],
-        context: data.context ?? null,
-        inputs,
-      })
-    } catch (err) {
-      if (isQuotaError(err)) {
-        gateRef.current = { id: pending.id, inputs }
-        replaceMessage(pending.id, {
-          id: pending.id,
-          role: 'assistant',
-          kind: 'gate',
-          message: "You've used your free queries. Create a free account to keep searching.",
-        })
-        setAuthMessage("You've used your free queries. Create a free account to keep searching.")
-        setAuthOpen(true)
-      } else {
-        replaceMessage(pending.id, {
-          id: pending.id,
-          role: 'assistant',
-          kind: 'error',
-          message: extractError(err),
-        })
-      }
-    } finally {
-      setBusy(false)
-    }
+    await runGeneration(pending.id, inputs)
   }
 
   async function handleSelectQuery(query) {
@@ -190,12 +215,16 @@ export default function App() {
         results: data.results ?? [],
       })
     } catch (err) {
-      replaceMessage(pending.id, {
-        id: pending.id,
-        role: 'assistant',
-        kind: 'error',
-        message: extractError(err),
-      })
+      if (isUnauthorized(err)) {
+        handleSessionExpired(pending.id)
+      } else {
+        replaceMessage(pending.id, {
+          id: pending.id,
+          role: 'assistant',
+          kind: 'error',
+          message: extractError(err),
+        })
+      }
     } finally {
       setBusy(false)
     }
@@ -212,39 +241,7 @@ export default function App() {
       message: 'Drafting fresh query ideas',
     })
 
-    try {
-      const data = await generateSuggestions(inputs)
-      if (data.quota) setAccount((prev) => ({ ...(prev ?? {}), authenticated: data.quota.authenticated, quota: data.quota }))
-      replaceMessage(messageId, {
-        id: messageId,
-        role: 'assistant',
-        kind: 'suggestions',
-        suggestions: data.suggestions ?? [],
-        context: data.context ?? null,
-        inputs,
-      })
-    } catch (err) {
-      if (isQuotaError(err)) {
-        gateRef.current = { id: messageId, inputs }
-        replaceMessage(messageId, {
-          id: messageId,
-          role: 'assistant',
-          kind: 'gate',
-          message: "You've used your free queries. Create a free account to keep searching.",
-        })
-        setAuthMessage("You've used your free queries. Create a free account to keep searching.")
-        setAuthOpen(true)
-      } else {
-        replaceMessage(messageId, {
-          id: messageId,
-          role: 'assistant',
-          kind: 'error',
-          message: extractError(err),
-        })
-      }
-    } finally {
-      setBusy(false)
-    }
+    await runGeneration(messageId, inputs)
   }
 
   async function handleAuthenticated() {

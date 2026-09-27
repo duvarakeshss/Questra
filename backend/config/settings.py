@@ -19,7 +19,6 @@ class Settings(BaseSettings):
     supabase_publishable_key: str = ""
     supabase_secret_key: str = ""
     supabase_usage_table: str = "query_usage"
-    database_url: str = ""
 
     vision_model: str = "qwen/qwen3.8-27b"
     generation_model: str = "openai/gpt-oss-120b"
