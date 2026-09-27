@@ -37,6 +37,7 @@ class Settings(BaseSettings):
 
     anonymous_free_queries: int = 2
     quota_window_hours: int = 24
+    quota_db_path: str = "quota_usage.sqlite3"
 
     cors_origins: str = "http://localhost:5173"
 

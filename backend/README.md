@@ -45,8 +45,10 @@ Auth and the database run on **Supabase** (see [../plan/supabase-setup.md](../pl
 - Anonymous usage is keyed by the `X-Anon-Id` header, falling back to the client IP.
 - The service-role (secret) key is **backend-only** — never expose it to the browser.
 
-If Supabase is not configured the backend logs a warning and runs **unmetered** so local
-development still works.
+Usage is stored in `public.query_usage`. If that table is missing, or Supabase is not configured,
+the quota transparently falls back to a local SQLite file (`QUOTA_DB_PATH`) so the limit **always
+holds** — the app never silently runs unmetered. Create the table (see the setup guide) to store
+usage in Supabase instead.
 
 ## Architecture
 

@@ -439,6 +439,7 @@ Nothing sensitive or tunable is hardcoded.
 | `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY` | For auth/quota | — | Backend-only key (bypasses RLS) |
 | `ANONYMOUS_FREE_QUERIES` | No | `2` | Free suggestion generations for logged-out visitors |
 | `QUOTA_WINDOW_HOURS` | No | `24` | Rolling window for the free quota (`0` = all-time) |
+| `QUOTA_DB_PATH` | No | `quota_usage.sqlite3` | Local SQLite fallback store for the quota |
 
 ---
 
