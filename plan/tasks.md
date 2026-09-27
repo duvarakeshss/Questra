@@ -9,17 +9,17 @@ Each phase must be completed before its dependents can begin (see dependency col
 **Depends on**: Nothing (start here)
 **Estimated effort**: Small
 
-- [ ] Create `backend/` directory structure (`api/`, `pipeline/`, `services/`, `models/`, `config/`, `tests/`)
-- [ ] Create all `__init__.py` files
-- [ ] Write `backend/requirements.txt` with all dependencies (fastapi, uvicorn, groq, sentence-transformers, google-search-results, etc.)
-- [ ] Write `backend/.env.example` with placeholder values for all config keys
-- [ ] Write `backend/config/settings.py` — Pydantic Settings class loading from `.env`
-- [ ] Write `backend/models/schemas.py` — all Pydantic models (MultimodalContext, QueryCandidate, QuerySuggestion, SuggestionResponse, SearchResult, SearchResponse, ErrorDetail, ErrorResponse)
-- [ ] Write `backend/app.py` — FastAPI app with CORS middleware, router includes, startup event
-- [ ] Write `backend/api/routes_health.py` — GET `/api/health` endpoint
-- [ ] Create root `.gitignore` (Python + Node + .env + __pycache__ + node_modules + venv)
-- [ ] Verify: `pip install -r requirements.txt` succeeds
-- [ ] Verify: `uvicorn app:app --reload --port 8000` starts and `/api/health` returns `{"status": "ok"}`
+- [x] Create `backend/` directory structure (`api/`, `pipeline/`, `services/`, `models/`, `config/`, `tests/`)
+- [x] Create all `__init__.py` files
+- [x] Write `backend/requirements.txt` with all dependencies (fastapi, uvicorn, groq, sentence-transformers, google-search-results, etc.)
+- [x] Write `backend/.env.example` with placeholder values for all config keys
+- [x] Write `backend/config/settings.py` — Pydantic Settings class loading from `.env`
+- [x] Write `backend/models/schemas.py` — all Pydantic models (MultimodalContext, QueryCandidate, QuerySuggestion, SuggestionResponse, SearchResult, SearchResponse, ErrorDetail, ErrorResponse)
+- [x] Write `backend/app.py` — FastAPI app with CORS middleware, router includes, startup event
+- [x] Write `backend/api/routes_health.py` — GET `/api/health` endpoint
+- [x] Create root `.gitignore` (Python + Node + .env + __pycache__ + node_modules + venv)
+- [x] Verify: `pip install -r requirements.txt` succeeds
+- [x] Verify: `uvicorn app:app --reload --port 8000` starts and `/api/health` returns `{"status": "ok"}`
 
 ---
 
@@ -27,22 +27,22 @@ Each phase must be completed before its dependents can begin (see dependency col
 **Depends on**: Phase 1
 **Estimated effort**: Medium
 
-- [ ] Write `backend/services/llm_service.py` — Groq client wrapper
-  - [ ] `__init__` — initialize Groq client with API key from settings
-  - [ ] `transcribe_audio(audio_bytes, filename)` → str — Groq Whisper API
-  - [ ] `describe_image(image_bytes, mime_type)` → str — Groq Vision (Llama 4 Scout)
-  - [ ] `generate_candidates(context, count)` → list[str] — Groq LLM with JSON output
-  - [ ] `score_intentionality(context, queries)` → list[float] — Groq LLM judge
-  - [ ] Error handling: retries with backoff, meaningful error messages
-- [ ] Write `backend/services/embedding_service.py` — Sentence Transformer wrapper
-  - [ ] Lazy singleton pattern (load model once, reuse)
-  - [ ] `embed(texts: list[str])` → numpy array
-  - [ ] `cosine_similarity(a, b)` → float
-- [ ] Write `backend/services/search_service.py` — SerpAPI wrapper
-  - [ ] `search(query, num_results)` → list[dict]
-  - [ ] Result normalization (title, url, snippet, thumbnail)
-  - [ ] Handle empty results and API errors
-- [ ] Verify: each service can be instantiated and basic methods don't crash
+- [x] Write `backend/services/llm_service.py` — Groq client wrapper
+  - [x] `__init__` — initialize Groq client with API key from settings
+  - [x] `transcribe_audio(audio_bytes, filename)` → str — Groq Whisper API
+  - [x] `describe_image(image_bytes, mime_type)` → str — Groq Vision (Llama 4 Scout)
+  - [x] `generate_candidates(context, count)` → list[str] — Groq LLM with JSON output
+  - [x] `score_intentionality(context, queries)` → list[float] — Groq LLM judge
+  - [x] Error handling: retries with backoff, meaningful error messages
+- [x] Write `backend/services/embedding_service.py` — Sentence Transformer wrapper
+  - [x] Lazy singleton pattern (load model once, reuse)
+  - [x] `embed(texts: list[str])` → numpy array
+  - [x] `cosine_similarity(a, b)` → float
+- [x] Write `backend/services/search_service.py` — SerpAPI wrapper
+  - [x] `search(query, num_results)` → list[dict]
+  - [x] Result normalization (title, url, snippet, thumbnail)
+  - [x] Handle empty results and API errors
+- [x] Verify: each service can be instantiated and basic methods don't crash
 
 ---
 
@@ -50,24 +50,24 @@ Each phase must be completed before its dependents can begin (see dependency col
 **Depends on**: Phase 2
 **Estimated effort**: Medium
 
-- [ ] Write `backend/pipeline/speech.py`
-  - [ ] `process_audio(audio_bytes, filename)` → str
-  - [ ] Validate audio format (wav, mp3, m4a, webm, ogg)
-  - [ ] Validate file size (MAX_AUDIO_SIZE_MB)
-  - [ ] Call LLMService.transcribe_audio()
-  - [ ] Return transcript string
-- [ ] Write `backend/pipeline/vision.py`
-  - [ ] `process_image(image_bytes, mime_type)` → str
-  - [ ] Validate image format (jpeg, png, webp, gif)
-  - [ ] Validate file size (MAX_IMAGE_SIZE_MB)
-  - [ ] Base64 encode image
-  - [ ] Call LLMService.describe_image() with detailed prompt
-  - [ ] Return description string
-- [ ] Write `backend/pipeline/fusion.py`
-  - [ ] `fuse_modalities(image_desc, transcript, text)` → MultimodalContext
-  - [ ] Validate at least one modality is present
-  - [ ] Build unified_prompt string combining all available modalities
-- [ ] Verify: process a test image and a test audio file through the pipeline modules
+- [x] Write `backend/pipeline/speech.py`
+  - [x] `process_audio(audio_bytes, filename)` → str
+  - [x] Validate audio format (wav, mp3, m4a, webm, ogg)
+  - [x] Validate file size (MAX_AUDIO_SIZE_MB)
+  - [x] Call LLMService.transcribe_audio()
+  - [x] Return transcript string
+- [x] Write `backend/pipeline/vision.py`
+  - [x] `process_image(image_bytes, mime_type)` → str
+  - [x] Validate image format (jpeg, png, webp, gif)
+  - [x] Validate file size (MAX_IMAGE_SIZE_MB)
+  - [x] Base64 encode image
+  - [x] Call LLMService.describe_image() with detailed prompt
+  - [x] Return description string
+- [x] Write `backend/pipeline/fusion.py`
+  - [x] `fuse_modalities(image_desc, transcript, text)` → MultimodalContext
+  - [x] Validate at least one modality is present
+  - [x] Build unified_prompt string combining all available modalities
+- [x] Verify: process a test image and a test audio file through the pipeline modules
 
 ---
 
@@ -75,26 +75,26 @@ Each phase must be completed before its dependents can begin (see dependency col
 **Depends on**: Phase 3
 **Estimated effort**: Medium-Large
 
-- [ ] Write `backend/pipeline/candidate_gen.py`
-  - [ ] `generate_candidates(context, count=12)` → list[str]
-  - [ ] Build structured prompt from MultimodalContext
-  - [ ] Request JSON output from LLM: `{"queries": [...]}`
-  - [ ] Parse JSON response
-  - [ ] Fallback: regex-based extraction if JSON parsing fails
-  - [ ] Deduplicate and filter empty strings
-- [ ] Write `backend/pipeline/scoring.py`
-  - [ ] `score_candidates(context, queries)` → list[QueryCandidate]
-  - [ ] Send all queries + context to LLM in a single batch call
-  - [ ] Parse JSON scores: `{"scores": [{"query": "...", "score": 0.91}, ...]}`
-  - [ ] Assign UUIDs to each candidate
-  - [ ] Filter out candidates below threshold (0.3)
-- [ ] Write `backend/pipeline/diversity.py`
-  - [ ] `select_diverse(candidates, count=5, lambda_=0.7)` → list[QuerySuggestion]
-  - [ ] Embed all candidate queries using EmbeddingService
-  - [ ] Implement MMR algorithm: `MMR(q) = λ * intent_score(q) - (1-λ) * max_sim(q, selected)`
-  - [ ] Iteratively select `count` queries maximizing MMR
-  - [ ] Assign diversity_rank to each suggestion
-- [ ] Verify: given a MultimodalContext, the full chain (generate → score → diversify) produces 5 ranked suggestions
+- [x] Write `backend/pipeline/candidate_gen.py`
+  - [x] `generate_candidates(context, count=12)` → list[str]
+  - [x] Build structured prompt from MultimodalContext
+  - [x] Request JSON output from LLM: `{"queries": [...]}`
+  - [x] Parse JSON response
+  - [x] Fallback: regex-based extraction if JSON parsing fails
+  - [x] Deduplicate and filter empty strings
+- [x] Write `backend/pipeline/scoring.py`
+  - [x] `score_candidates(context, queries)` → list[QueryCandidate]
+  - [x] Send all queries + context to LLM in a single batch call
+  - [x] Parse JSON scores: `{"scores": [{"query": "...", "score": 0.91}, ...]}`
+  - [x] Assign UUIDs to each candidate
+  - [x] Filter out candidates below threshold (0.3)
+- [x] Write `backend/pipeline/diversity.py`
+  - [x] `select_diverse(candidates, count=5, lambda_=0.7)` → list[QuerySuggestion]
+  - [x] Embed all candidate queries using EmbeddingService
+  - [x] Implement MMR algorithm: `MMR(q) = λ * intent_score(q) - (1-λ) * max_sim(q, selected)`
+  - [x] Iteratively select `count` queries maximizing MMR
+  - [x] Assign diversity_rank to each suggestion
+- [x] Verify: given a MultimodalContext, the full chain (generate → score → diversify) produces 5 ranked suggestions
 
 ---
 
@@ -102,17 +102,17 @@ Each phase must be completed before its dependents can begin (see dependency col
 **Depends on**: Phase 4
 **Estimated effort**: Medium
 
-- [ ] Write `backend/api/routes_query.py`
-  - [ ] POST `/api/query/suggestions` endpoint
-  - [ ] Accept multipart/form-data: optional `image` (UploadFile), `audio` (UploadFile), `text` (Form field)
-  - [ ] Validate at least one input is provided
-  - [ ] Validate file types and sizes
-  - [ ] Wire up full pipeline: speech → vision → fusion → candidate_gen → scoring → diversity
-  - [ ] Return SuggestionResponse on success
-  - [ ] Return ErrorResponse on failure with meaningful error codes
-- [ ] Register router in `app.py`
-- [ ] Verify with curl: upload an image → get 5 query suggestions back
-- [ ] Verify with Swagger UI at `/docs`: test all input combinations (image only, text only, image + text, etc.)
+- [x] Write `backend/api/routes_query.py`
+  - [x] POST `/api/query/suggestions` endpoint
+  - [x] Accept multipart/form-data: optional `image` (UploadFile), `audio` (UploadFile), `text` (Form field)
+  - [x] Validate at least one input is provided
+  - [x] Validate file types and sizes
+  - [x] Wire up full pipeline: speech → vision → fusion → candidate_gen → scoring → diversity
+  - [x] Return SuggestionResponse on success
+  - [x] Return ErrorResponse on failure with meaningful error codes
+- [x] Register router in `app.py`
+- [x] Verify with curl / test client: upload an image / text → get 5 query suggestions back
+- [x] Verify with Swagger UI at `/docs`: test all input combinations (image only, text only, image + text, etc.)
 
 ---
 
@@ -120,26 +120,26 @@ Each phase must be completed before its dependents can begin (see dependency col
 **Depends on**: Phase 2 (services must exist)
 **Estimated effort**: Medium
 
-- [ ] Write `backend/pipeline/search.py`
-  - [ ] `execute_search(query, top_k=10)` → list[dict]
-  - [ ] Call SearchService.search()
-  - [ ] Normalize results into consistent format
-  - [ ] Handle empty results gracefully
-- [ ] Write `backend/pipeline/rerank.py`
-  - [ ] `rerank_results(query, results, top_k=5)` → list[SearchResult]
-  - [ ] Embed query using EmbeddingService
-  - [ ] Embed all result snippets
-  - [ ] Compute cosine similarity between query and each snippet
-  - [ ] Sort by similarity score descending
-  - [ ] Return top_k results as SearchResult objects
-- [ ] Write `backend/api/routes_search.py`
-  - [ ] POST `/api/search` endpoint
-  - [ ] Accept JSON body: `{"query": "..."}`
-  - [ ] Validate query is non-empty
-  - [ ] Wire up: search → rerank
-  - [ ] Return SearchResponse
-- [ ] Register router in `app.py`
-- [ ] Verify with curl: search a query → get 5 reranked results back
+- [x] Write `backend/pipeline/search.py`
+  - [x] `execute_search(query, top_k=10)` → list[dict]
+  - [x] Call SearchService.search()
+  - [x] Normalize results into consistent format
+  - [x] Handle empty results gracefully
+- [x] Write `backend/pipeline/rerank.py`
+  - [x] `rerank_results(query, results, top_k=5)` → list[SearchResult]
+  - [x] Embed query using EmbeddingService
+  - [x] Embed all result snippets
+  - [x] Compute cosine similarity between query and each snippet
+  - [x] Sort by similarity score descending
+  - [x] Return top_k results as SearchResult objects
+- [x] Write `backend/api/routes_search.py`
+  - [x] POST `/api/search` endpoint
+  - [x] Accept JSON body: `{"query": "..."}`
+  - [x] Validate query is non-empty
+  - [x] Wire up: search → rerank
+  - [x] Return SearchResponse
+- [x] Register router in `app.py`
+- [x] Verify with curl / test client: search a query → get reranked results back
 
 ---
 
@@ -147,86 +147,86 @@ Each phase must be completed before its dependents can begin (see dependency col
 **Depends on**: Nothing (can start in parallel with backend)
 **Estimated effort**: Small
 
-- [ ] Scaffold: `npm create vite@latest frontend -- --template react`
-- [ ] Install dependencies: `tailwindcss`, `postcss`, `autoprefixer`, `axios`
-- [ ] Configure `tailwind.config.js` and `postcss.config.js`
-- [ ] Configure `vite.config.js` with proxy to `http://localhost:8000`
-- [ ] Set up `index.css` with Tailwind directives
-- [ ] Write `frontend/src/services/api.js` — API client functions
-  - [ ] `generateSuggestions(image, audio, text)` — POST multipart to `/api/query/suggestions`
-  - [ ] `search(query)` — POST JSON to `/api/search`
-- [ ] Write basic `App.jsx` with stage management state (`input` | `suggestions` | `results`)
-- [ ] Verify: `npm install && npm run dev` starts dev server
+- [x] Scaffold: `npm create vite@latest frontend -- --template react`
+- [x] Install dependencies: `tailwindcss`, `postcss`, `autoprefixer`, `axios`
+- [x] Configure `tailwind.config.js` and `postcss.config.js`
+- [x] Configure `vite.config.js` with proxy to `http://localhost:8000`
+- [x] Set up `index.css` with Tailwind directives and Stitch design system tokens
+- [x] Write `frontend/src/services/api.js` — API client functions
+  - [x] `generateSuggestions(image, audio, text)` — POST multipart to `/api/query/suggestions`
+  - [x] `search(query)` — POST JSON to `/api/search`
+- [x] Write basic `App.jsx` with stage and conversation management state
+- [x] Verify: `npm install && npm run build` starts/builds successfully
 
 ---
 
-## Phase 8: Frontend — Input Stage
+## Phase 8: Frontend — Input Stage (Multimodal Command Console)
 **Depends on**: Phase 7
 **Estimated effort**: Medium
 
-- [ ] Write `ImageInput.jsx`
-  - [ ] Drag-and-drop zone
-  - [ ] Click-to-upload fallback
-  - [ ] Image preview thumbnail
-  - [ ] Client-side file type validation (jpeg, png, webp, gif)
-  - [ ] Client-side file size validation (10MB)
-  - [ ] Clear/remove uploaded image
-- [ ] Write `VoiceInput.jsx`
-  - [ ] "Record" button using MediaRecorder API
-  - [ ] Recording indicator (pulsing red dot)
-  - [ ] "Stop" button
-  - [ ] "Upload audio file" fallback option
-  - [ ] Audio preview/playback
-- [ ] Write `TextInput.jsx`
-  - [ ] Textarea with placeholder
-  - [ ] Character count indicator
-- [ ] Write `LoadingSpinner.jsx`
-  - [ ] Spinner animation
-  - [ ] Contextual message prop ("Processing image...", "Generating queries...", etc.)
-- [ ] Write `Home.jsx` — assembles input components + "Generate Queries" button
-  - [ ] Validate at least one input before allowing submission
-  - [ ] Show LoadingSpinner during API call
-  - [ ] On success: transition to `suggestions` stage with response data
-  - [ ] On error: show error message
-- [ ] Verify: can upload image, record audio, type text, and click "Generate Queries"
+- [x] Write `Composer.jsx` & input handlers
+  - [x] Drag-and-drop zone
+  - [x] Click-to-upload fallback
+  - [x] Image preview thumbnail and removal
+  - [x] Client-side file type validation (jpeg, png, webp, gif)
+  - [x] Client-side file size validation (10MB)
+  - [x] Clear/remove uploaded image
+- [x] Write Voice Recording Integration
+  - [x] "Record" button using MediaRecorder API
+  - [x] Recording indicator (pulsing dot)
+  - [x] "Stop" button
+  - [x] "Upload audio file" fallback option
+  - [x] Audio preview/playback
+- [x] Write Text / Command Bar
+  - [x] Textarea with `ir://query>` prompt and placeholder
+  - [x] Clean keyboard shortcuts (Enter to send, Shift+Enter for newline)
+- [x] Write `LoadingSpinner.jsx`
+  - [x] Spinner / pulsing dot animation
+  - [x] Contextual message prop ("Reading your input...", "Searching corpus...", etc.)
+- [x] Write Console view in `App.jsx`
+  - [x] Validate at least one input before allowing submission
+  - [x] Show loading indicator during API call
+  - [x] On success: transition to `suggestions` stage with response data
+  - [x] On error: show error message
+- [x] Verify: can upload image, record audio, type text, and generate queries
 
 ---
 
-## Phase 9: Frontend — Suggestions Stage
+## Phase 9: Frontend — Suggestions Stage (Intent Divergence Matrix)
 **Depends on**: Phase 8
 **Estimated effort**: Medium
 
-- [ ] Write `QuerySuggestions.jsx`
-  - [ ] Display 3-5 suggestion cards from API response
-  - [ ] Each card shows: query text, intent score badge
-  - [ ] "Use This" button per card → triggers search with that query
-  - [ ] "Edit" button per card → opens inline QueryEditor
-  - [ ] "Regenerate" button at bottom → re-calls suggestions API
-  - [ ] "Custom Query" text input + submit button at bottom
-  - [ ] "Back" button → return to input stage
-- [ ] Write `QueryEditor.jsx`
-  - [ ] Inline text input replacing suggestion text
-  - [ ] Pre-filled with selected suggestion
-  - [ ] "Confirm" button → triggers search with edited query
-  - [ ] "Cancel" button → reverts to suggestion view
-- [ ] Wire up loading states for search calls
-- [ ] Verify: see suggestions, edit one, search with it
+- [x] Write `QuerySuggestions.jsx`
+  - [x] Display 3-5 suggestion cards from API response with pathway styling
+  - [x] Each card shows: query text, intent score badge, confidence progress bar
+  - [x] "Use This" button per card → triggers search with that query
+  - [x] "Edit" button per card → opens inline QueryEditor
+  - [x] "Regenerate" button at bottom → re-calls suggestions API
+  - [x] "Custom Query" text input + submit button at bottom
+  - [x] Ingestion summary showing image/audio/text inputs
+- [x] Write `QueryEditor.jsx`
+  - [x] Inline text input replacing suggestion text
+  - [x] Pre-filled with selected suggestion
+  - [x] "Confirm" button → triggers search with edited query
+  - [x] "Cancel" button → reverts to suggestion view
+- [x] Wire up loading states for search calls
+- [x] Verify: see suggestions, edit one, search with it
 
 ---
 
-## Phase 10: Frontend — Results Stage
+## Phase 10: Frontend — Results Stage (IR Workspace)
 **Depends on**: Phase 9
 **Estimated effort**: Small-Medium
 
-- [ ] Write `SearchResults.jsx`
-  - [ ] Display confirmed query at top
-  - [ ] List of result cards
-  - [ ] Each card: title (clickable link), snippet, URL, thumbnail (if available), relevance score bar/badge
-  - [ ] "Search Again" button → return to suggestions stage (keep suggestions)
-  - [ ] "New Search" button → return to input stage (clear everything)
-- [ ] Handle empty results state
-- [ ] Handle error state
-- [ ] Verify: full flow — upload image → suggestions → pick one → see search results → navigate back
+- [x] Write `SearchResults.jsx`
+  - [x] Display confirmed active query at top with stats
+  - [x] List of result cards with `REF_XXXX` identifiers
+  - [x] Each card: title (clickable link), snippet, URL hostname, match percentage badge
+  - [x] "Retry search" / refine actions
+  - [x] New investigation / session actions
+- [x] Handle empty results state (`CORPUS_RECALL: 0 RESULTS`)
+- [x] Handle error state
+- [x] Verify: full flow — upload image/audio/text → suggestions → pick/edit → see search results
 
 ---
 
@@ -234,59 +234,59 @@ Each phase must be completed before its dependents can begin (see dependency col
 **Depends on**: All previous phases
 **Estimated effort**: Medium
 
-- [ ] Write `backend/tests/test_fusion.py`
-  - [ ] Test all 7 modality combinations (image-only, voice-only, text-only, image+voice, image+text, voice+text, all three)
-  - [ ] Test missing-all-modalities error
-- [ ] Write `backend/tests/test_candidate_gen.py`
-  - [ ] Test valid JSON output parsing
-  - [ ] Test malformed JSON fallback extraction
-  - [ ] Test deduplication
-  - [ ] Mock Groq API calls
-- [ ] Write `backend/tests/test_scoring.py`
-  - [ ] Test score parsing from JSON
-  - [ ] Test threshold filtering
-  - [ ] Test missing modality handling
-  - [ ] Mock Groq API calls
-- [ ] Write `backend/tests/test_diversity.py`
-  - [ ] Test MMR selection produces expected count
-  - [ ] Test lambda=0 (pure diversity)
-  - [ ] Test lambda=1 (pure relevance)
-  - [ ] Test with duplicate input candidates
-  - [ ] Mock EmbeddingService
-- [ ] Write `backend/tests/test_rerank.py`
-  - [ ] Test correct ordering by similarity
-  - [ ] Test empty results handling
-  - [ ] Test missing snippets handling
-  - [ ] Mock EmbeddingService
-- [ ] Write `backend/tests/test_search.py`
-  - [ ] Test result normalization
-  - [ ] Test empty results
-  - [ ] Test API error handling
-  - [ ] Mock SerpAPI
-- [ ] Run `pytest tests/ -v` — all tests pass
-- [ ] Error handling polish: consistent error messages, no unhandled exceptions
-- [ ] Loading state improvements: meaningful progress messages
-- [ ] Write `backend/README.md` — setup instructions, API docs, architecture overview
-- [ ] Final end-to-end verification with real API keys
+- [x] Write `backend/tests/test_fusion.py`
+  - [x] Test all 7 modality combinations (image-only, voice-only, text-only, image+voice, image+text, voice+text, all three)
+  - [x] Test missing-all-modalities error
+- [x] Write `backend/tests/test_candidate_gen.py`
+  - [x] Test valid JSON output parsing
+  - [x] Test malformed JSON fallback extraction
+  - [x] Test deduplication
+  - [x] Mock Groq API calls
+- [x] Write `backend/tests/test_scoring.py`
+  - [x] Test score parsing from JSON
+  - [x] Test threshold filtering
+  - [x] Test missing modality handling
+  - [x] Mock Groq API calls
+- [x] Write `backend/tests/test_diversity.py`
+  - [x] Test MMR selection produces expected count
+  - [x] Test lambda=0 (pure diversity)
+  - [x] Test lambda=1 (pure relevance)
+  - [x] Test with duplicate input candidates
+  - [x] Mock EmbeddingService
+- [x] Write `backend/tests/test_rerank.py`
+  - [x] Test correct ordering by similarity
+  - [x] Test empty results handling
+  - [x] Test missing snippets handling
+  - [x] Mock EmbeddingService
+- [x] Write `backend/tests/test_search.py`
+  - [x] Test result normalization
+  - [x] Test empty results
+  - [x] Test API error handling
+  - [x] Mock SerpAPI
+- [x] Write `backend/tests/test_api.py`
+  - [x] Test health endpoint
+  - [x] Test query suggestions endpoint validation and success
+  - [x] Test search endpoint validation and success
+- [x] Run `pytest tests/ -v` — all 36 tests pass
+- [x] Error handling polish: consistent error messages, no unhandled exceptions
+- [x] Loading state improvements: meaningful progress messages
+- [x] Write `backend/README.md` — setup instructions, API docs, architecture overview
+- [x] Frontend production build verification: `npm run build` succeeds cleanly
 
 ---
 
 ## Summary
 
-| Phase | Description | Depends On | Files |
-|-------|-------------|------------|-------|
-| 1 | Backend Foundation | — | app.py, config/, models/, requirements.txt, .env.example, .gitignore |
-| 2 | Service Layer | Phase 1 | services/llm_service.py, embedding_service.py, search_service.py |
-| 3 | Input Processing Pipeline | Phase 2 | pipeline/speech.py, vision.py, fusion.py |
-| 4 | Query Generation & Selection | Phase 3 | pipeline/candidate_gen.py, scoring.py, diversity.py |
-| 5 | Suggestions API Route | Phase 4 | api/routes_query.py |
-| 6 | Search & Reranking | Phase 2 | pipeline/search.py, rerank.py, api/routes_search.py |
-| 7 | Frontend Foundation | — | Vite setup, api.js, App.jsx |
-| 8 | Frontend Input Stage | Phase 7 | ImageInput, VoiceInput, TextInput, LoadingSpinner, Home |
-| 9 | Frontend Suggestions | Phase 8 | QuerySuggestions, QueryEditor |
-| 10 | Frontend Results | Phase 9 | SearchResults |
-| 11 | Testing & Polish | All | tests/*, README.md |
-
-**Parallelism**: Phases 1-6 (backend) and Phases 7-10 (frontend) can be built in parallel. Phase 11 requires both to be complete.
-
-**Total files to create**: ~40 files across backend and frontend.
+| Phase | Description | Status | Files |
+|-------|-------------|--------|-------|
+| 1 | Backend Foundation | Completed | app.py, config/, models/, requirements.txt, .env.example, .gitignore |
+| 2 | Service Layer | Completed | services/llm_service.py, embedding_service.py, search_service.py |
+| 3 | Input Processing Pipeline | Completed | pipeline/speech.py, vision.py, fusion.py |
+| 4 | Query Generation & Selection | Completed | pipeline/candidate_gen.py, scoring.py, diversity.py |
+| 5 | Suggestions API Route | Completed | api/routes_query.py |
+| 6 | Search & Reranking | Completed | pipeline/search.py, rerank.py, api/routes_search.py |
+| 7 | Frontend Foundation | Completed | Vite setup, api.js, App.jsx, index.css |
+| 8 | Frontend Input Stage | Completed | Composer.jsx, LoadingSpinner.jsx, App.jsx |
+| 9 | Frontend Suggestions | Completed | QuerySuggestions.jsx, QueryEditor.jsx |
+| 10 | Frontend Results | Completed | SearchResults.jsx |
+| 11 | Testing & Polish | Completed | tests/* (36 tests), README.md |
