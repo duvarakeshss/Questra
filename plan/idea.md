@@ -2259,8 +2259,8 @@ Questra Version 1 is considered complete when:
 - [ ] Basic unit tests exist.
 - [ ] API tests exist.
 - [ ] Pipeline tests exist.
-- [ ] Evaluation metrics are implemented.
-- [ ] Baseline comparison is possible.
+- [x] Evaluation metrics are implemented.
+- [x] Baseline comparison is possible.
 - [ ] Project documentation explains the architecture.
 - [ ] The implementation clearly distinguishes Questra from the original RL-based research approach.
 

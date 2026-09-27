@@ -228,9 +228,9 @@ User confirms / edits query
 | Frontend framework | React 18 + Vite 5 | Fast dev server, simple SPA |
 | Styling | Tailwind CSS | Utility-first, no component library needed |
 | LLM provider | Groq | Free tier, fast inference, one SDK for vision + speech + text |
-| Vision model | `llama-4-scout-17b-16e-instruct` | Multimodal Llama 4 on Groq |
+| Vision model | `qwen/qwen3.8-27b` | Groq vision-capable model, free tier |
 | Speech model | `whisper-large-v3` | Best accuracy, sub-second on Groq |
-| Text generation | `llama-3.3-70b-versatile` | Fast, good structured JSON output |
+| Text generation | `openai/gpt-oss-120b` | Fast, good structured JSON output |
 | Embeddings | `all-MiniLM-L6-v2` (Sentence Transformers) | 80 MB, runs on CPU, no API calls |
 | Search API | SerpAPI (`google-search-results` SDK) | Structured JSON, Google results |
 | Intentionality scoring | LLM judge (not CLIP) | Simpler, handles text constraints, one less model |
@@ -409,8 +409,8 @@ Nothing sensitive or tunable is hardcoded.
 |----------|----------|---------|-------------|
 | `GROQ_API_KEY` | Yes | — | Groq API key |
 | `SERPAPI_API_KEY` | Yes | — | SerpAPI key |
-| `VISION_MODEL` | No | `llama-4-scout-17b-16e-instruct` | Groq vision model |
-| `GENERATION_MODEL` | No | `llama-3.3-70b-versatile` | Groq text model |
+| `VISION_MODEL` | No | `qwen/qwen3.8-27b` | Groq vision model |
+| `GENERATION_MODEL` | No | `openai/gpt-oss-120b` | Groq text model |
 | `WHISPER_MODEL` | No | `whisper-large-v3` | Groq speech model |
 | `EMBEDDING_MODEL` | No | `all-MiniLM-L6-v2` | Local embedding model |
 | `CANDIDATE_COUNT` | No | `12` | Queries to generate |

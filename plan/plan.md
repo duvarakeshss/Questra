@@ -56,10 +56,10 @@ Frontend (React + Vite)          Backend (Python + FastAPI)
 
 | Task | Model | Why |
 |------|-------|-----|
-| Vision (image understanding) | `llama-4-scout-17b-16e-instruct` | Multimodal Llama 4 on Groq — fast, free tier, understands images |
+| Vision (image understanding) | `qwen/qwen3.8-27b` | Groq vision-capable model — free tier, understands images |
 | Speech-to-text | `whisper-large-v3` | Best accuracy, runs on Groq in <1s |
-| Query generation | `llama-3.3-70b-versatile` | Fast, good at structured JSON output |
-| Intentionality scoring (LLM judge) | `llama-3.3-70b-versatile` | Same model, batch scoring via prompt |
+| Query generation | `openai/gpt-oss-120b` | Fast, good at structured JSON output |
+| Intentionality scoring (LLM judge) | `openai/gpt-oss-120b` | Same model, batch scoring via prompt |
 
 ### Embeddings: Sentence Transformers
 
@@ -178,8 +178,8 @@ Questra/
 2. Create `config/settings.py` with Pydantic Settings:
    - `GROQ_API_KEY` (required)
    - `SERPAPI_API_KEY` (required)
-   - `VISION_MODEL` = `"llama-4-scout-17b-16e-instruct"`
-   - `GENERATION_MODEL` = `"llama-3.3-70b-versatile"`
+   - `VISION_MODEL` = `"qwen/qwen3.8-27b"`
+   - `GENERATION_MODEL` = `"openai/gpt-oss-120b"`
    - `WHISPER_MODEL` = `"whisper-large-v3"`
    - `EMBEDDING_MODEL` = `"all-MiniLM-L6-v2"`
    - `CANDIDATE_COUNT` = `12`
@@ -437,8 +437,8 @@ GROQ_API_KEY=gsk_your_key_here
 SERPAPI_API_KEY=your_key_here
 
 # Models (defaults shown)
-VISION_MODEL=llama-4-scout-17b-16e-instruct
-GENERATION_MODEL=llama-3.3-70b-versatile
+VISION_MODEL=qwen/qwen3.8-27b
+GENERATION_MODEL=openai/gpt-oss-120b
 WHISPER_MODEL=whisper-large-v3
 EMBEDDING_MODEL=all-MiniLM-L6-v2
 
@@ -500,7 +500,7 @@ Focus on unit tests for pipeline modules since this is a prototype:
 
 | Risk | Mitigation |
 |------|------------|
-| Groq Vision model may not be available or may change names | Settings are configurable; model name in .env. Fallback: use `meta-llama/llama-4-scout-17b-16e-instruct` or check Groq docs |
+| Groq Vision model may not be available or may change names | Settings are configurable; model name in .env. The available catalog is account-specific — check `client.models.list()` and set `VISION_MODEL` to a vision-capable id (e.g. `qwen/qwen3.8-27b`) |
 | Groq rate limits on free tier | Add basic retry logic with backoff in LLMService |
 | SerpAPI costs add up during development | Cache search results during dev; consider DuckDuckGo for dev/test |
 | Sentence Transformer first load is slow (~30s) | Lazy-load at startup, show loading state, cache in memory |

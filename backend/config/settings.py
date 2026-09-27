@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     serpapi_api_key: str = ""
 
-    vision_model: str = "llama-4-scout-17b-16e-instruct"
-    generation_model: str = "llama-3.3-70b-versatile"
+    vision_model: str = "qwen/qwen3.8-27b"
+    generation_model: str = "openai/gpt-oss-120b"
     whisper_model: str = "whisper-large-v3"
     embedding_model: str = "all-MiniLM-L6-v2"
 

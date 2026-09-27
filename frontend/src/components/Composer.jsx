@@ -5,8 +5,47 @@ const MAX_IMAGE_MB = 10
 const MAX_AUDIO_MB = 25
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
+const AUDIO_MIME_CANDIDATES = [
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/ogg;codecs=opus',
+  'audio/mp4',
+]
+
 const canRecord = () =>
-  typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia)
+  typeof navigator !== 'undefined' &&
+  typeof window !== 'undefined' &&
+  window.isSecureContext &&
+  typeof MediaRecorder !== 'undefined' &&
+  Boolean(navigator.mediaDevices?.getUserMedia)
+
+function pickAudioMimeType() {
+  if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
+    return ''
+  }
+  return AUDIO_MIME_CANDIDATES.find((type) => MediaRecorder.isTypeSupported(type)) || ''
+}
+
+function describeMicError(error) {
+  switch (error?.name) {
+    case 'NotAllowedError':
+    case 'PermissionDeniedError':
+    case 'SecurityError':
+      return 'Microphone access is blocked. Allow it for this site (browser and OS settings) or attach an audio file.'
+    case 'NotFoundError':
+    case 'DevicesNotFoundError':
+      return 'No microphone was found. Attach an audio file instead.'
+    case 'NotReadableError':
+    case 'TrackStartError':
+      return 'Your microphone is busy in another app. Close it or attach an audio file.'
+    case 'OverconstrainedError':
+      return 'No microphone matched the requested settings. Attach an audio file instead.'
+    case 'NotSupportedError':
+      return 'Audio recording is not supported in this browser. Attach an audio file instead.'
+    default:
+      return `We could not reach your microphone (${error?.name || 'unknown error'}). Attach an audio file instead.`
+  }
+}
 
 const MODALITIES = [
   { id: 'text', label: 'Text Lexical', icon: 'T' },
@@ -21,6 +60,7 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
   const [audio, setAudio] = useState(null)
   const [recording, setRecording] = useState(false)
   const [activeModalities, setActiveModalities] = useState(new Set(['text']))
+  const [micBlocked, setMicBlocked] = useState(false)
 
   const textareaRef = useRef(null)
   const imageInputRef = useRef(null)
@@ -29,6 +69,7 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
   const chunksRef = useRef([])
 
   const hasContent = Boolean(image || audio || text.trim())
+  const recordingSupported = canRecord() && !micBlocked
 
   useEffect(() => {
     const node = textareaRef.current
@@ -80,21 +121,32 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
   }
 
   async function startRecording() {
-    if (!canRecord()) {
+    if (!canRecord() || micBlocked) {
       audioInputRef.current?.click()
       return
     }
+
+    let stream
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
-      recorder.stream = stream
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch (error) {
+      setMicBlocked(true)
+      onError(describeMicError(error))
+      return
+    }
+
+    try {
+      const mimeType = pickAudioMimeType()
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
       chunksRef.current = []
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) chunksRef.current.push(event.data)
       }
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
-        setAudio(new File([blob], 'recording.webm', { type: blob.type }))
+        const type = recorder.mimeType || 'audio/webm'
+        const blob = new Blob(chunksRef.current, { type })
+        const extension = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm'
+        setAudio(new File([blob], `recording.${extension}`, { type }))
         stream.getTracks().forEach((track) => track.stop())
         setRecording(false)
         setActiveModalities(prev => new Set([...prev, 'vox']))
@@ -103,8 +155,9 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
       recorderRef.current = recorder
       setRecording(true)
       onError(null)
-    } catch {
-      onError('We could not reach your microphone. Attach an audio file instead.')
+    } catch (error) {
+      stream.getTracks().forEach((track) => track.stop())
+      onError(`Recording is not supported in this browser (${error?.name || 'unknown error'}). Attach an audio file instead.`)
     }
   }
 
@@ -271,11 +324,11 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
               onClick={startRecording}
               disabled={disabled}
               className="btn btn-technical gap-1"
-              title={canRecord() ? 'Record voice' : 'Attach audio'}
-              aria-label={canRecord() ? 'Record voice' : 'Attach audio'}
+              title={recordingSupported ? 'Record voice' : 'Attach an audio file'}
+              aria-label={recordingSupported ? 'Record voice' : 'Attach an audio file'}
             >
               <Mic className="h-3.5 w-3.5" />
-              {canRecord() ? 'Vox' : 'Audio'}
+              {recordingSupported ? 'Vox' : 'Audio'}
             </button>
           )}
         </div>

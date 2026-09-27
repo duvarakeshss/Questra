@@ -51,6 +51,26 @@ pytest tests/ -v
 
 External services (Groq, SerpAPI) are mocked — no API keys required to run the suite.
 
+## Evaluation
+
+`evaluation/` scores the pipeline against the objectives in `idea.md` (§20) and the four
+baselines (§21):
+
+- `metrics.py` — precision@k, recall@k, MRR, DCG/nDCG.
+- `intentionality.py` — mean intent score + embedding alignment of queries to the multimodal context.
+- `diversity.py` — average pairwise similarity/distance across a suggestion set.
+- `baselines.py` — text-only, image-caption, single-generated-query, relevance-only, and full Questra selectors.
+- `harness.py` — runs every system over a benchmark and aggregates the metrics into a comparison table.
+
+Run the sample comparison (requires `GROQ_API_KEY` and `SERPAPI_API_KEY`):
+
+```bash
+python -m evaluation.run
+```
+
+Intentionality and diversity are label-free, so the sample runs without ground truth. Attach
+`relevant_urls` (and optionally `relevance_grades`) to benchmark cases to also score search quality.
+
 ## Configuration
 
 All configuration is environment-driven (see `.env.example`): Groq/SerpAPI keys, model names, candidate/suggestion counts, MMR lambda, top-k values, upload size limits, and CORS origins.

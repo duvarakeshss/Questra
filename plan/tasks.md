@@ -275,6 +275,22 @@ Each phase must be completed before its dependents can begin (see dependency col
 
 ---
 
+## Phase 12: Evaluation
+**Depends on**: Phase 11
+**Estimated effort**: Medium
+
+- [x] Write `backend/evaluation/metrics.py` — ranking metrics (precision@k, recall@k, MRR, DCG/nDCG)
+- [x] Write `backend/evaluation/intentionality.py` — mean intent score + embedding alignment of queries to the multimodal context
+- [x] Write `backend/evaluation/diversity.py` — average pairwise similarity/distance across a suggestion set
+- [x] Write `backend/evaluation/baselines.py` — the four baselines (text-only, image-caption, single-generated, relevance-only) + full Questra selector
+- [x] Write `backend/evaluation/harness.py` — `BenchmarkCase`, `evaluate_case`, `run_benchmark` system comparison
+- [x] Write `backend/evaluation/dataset.py` — small illustrative benchmark (idea.md §22)
+- [x] Write `backend/evaluation/run.py` — CLI comparison table (`python -m evaluation.run`)
+- [x] Write `backend/tests/test_evaluation.py` — metrics, intentionality, diversity, baselines, harness
+- [x] Verify: `pytest tests/ -v` — all 52 tests pass
+
+---
+
 ## Summary
 
 | Phase | Description | Status | Files |
@@ -290,3 +306,4 @@ Each phase must be completed before its dependents can begin (see dependency col
 | 9 | Frontend Suggestions | Completed | QuerySuggestions.jsx, QueryEditor.jsx |
 | 10 | Frontend Results | Completed | SearchResults.jsx |
 | 11 | Testing & Polish | Completed | tests/* (36 tests), README.md |
+| 12 | Evaluation | Completed | evaluation/*, tests/test_evaluation.py |
