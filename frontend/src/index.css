@@ -142,8 +142,15 @@
   }
 
   .glass {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
-    backdrop-filter: blur(14px);
+    background: linear-gradient(180deg, rgba(24, 20, 44, 0.78), rgba(11, 9, 20, 0.72));
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+  }
+
+  .glass-soft {
+    background: linear-gradient(180deg, rgba(26, 22, 48, 0.6), rgba(12, 10, 22, 0.5));
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
   }
 }
 

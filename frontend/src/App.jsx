@@ -268,6 +268,19 @@ export default function App() {
     setSidebarOpen(false)
   }
 
+  function handleDeleteConversation(id) {
+    const remaining = conversations.filter((conversation) => conversation.id !== id)
+    if (remaining.length === 0) {
+      const fresh = createConversation()
+      setConversations([fresh])
+      setActiveId(fresh.id)
+    } else {
+      setConversations(remaining)
+      if (id === activeId) setActiveId(remaining[0].id)
+    }
+    setError(null)
+  }
+
   function handleSignOut() {
     auth.signOut()
     setAccount(null)
@@ -284,6 +297,7 @@ export default function App() {
           setSidebarOpen(false)
         }}
         onNew={handleNewSearch}
+        onDelete={handleDeleteConversation}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         account={account}
@@ -295,7 +309,7 @@ export default function App() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="glass flex items-center justify-between border-b border-outline-variant px-space-md py-2.5">
+        <header className="glass flex items-center justify-between border-b border-white/10 px-space-md py-2.5">
           <div className="flex items-center gap-space-sm">
             <button type="button" className="btn-icon md:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
               <Menu />

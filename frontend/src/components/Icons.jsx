@@ -227,3 +227,18 @@ export function Sparkle({ className = 'h-4 w-4' }) {
     </svg>
   )
 }
+
+export function Trash({ className = 'h-4 w-4' }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M4.5 5.75h11M8.25 5.75V4.5A1.25 1.25 0 019.5 3.25h1A1.25 1.25 0 0111.75 4.5v1.25M6.75 5.75l.55 9a1.5 1.5 0 001.5 1.4h2.4a1.5 1.5 0 001.5-1.4l.55-9"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M8.75 8.75v4.5M11.25 8.75v4.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+}

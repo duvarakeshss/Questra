@@ -176,7 +176,7 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
   const hasAttachment = Boolean(image || audio)
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface-lowest shadow-composer transition-colors focus-within:border-primary">
+    <div className="glass overflow-hidden rounded-2xl border border-white/10 shadow-composer transition-colors focus-within:border-primary/70">
       {hasAttachment && (
         <div className="flex flex-wrap gap-2 border-b border-outline-variant/70 px-3 pt-3">
           {image && (
