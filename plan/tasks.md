@@ -291,6 +291,36 @@ Each phase must be completed before its dependents can begin (see dependency col
 
 ---
 
+## Phase 13: Supabase Auth & Free-Query Quota
+**Depends on**: Phase 12
+**Estimated effort**: Medium-Large
+
+- [x] `backend/services/supabase_client.py` — lazy admin (secret) + public (publishable) clients
+- [x] `backend/supabase/schema.sql` — `query_usage` table + index + RLS
+- [x] `backend/services/auth_service.py` — validate Supabase access tokens
+- [x] `backend/services/quota_service.py` — windowed usage count + check-and-consume (fails open if unconfigured)
+- [x] `backend/api/deps.py` — `current_user` + `client_subject` (user / `X-Anon-Id` / IP)
+- [x] `backend/api/routes_me.py` — `GET /api/me`
+- [x] Quota-gate `POST /api/query/suggestions`; `QuotaExceededError` → 429; add `quota` to `SuggestionResponse`
+- [x] `UNAUTHORIZED` (401) + `QUOTA_EXCEEDED` (429) error codes
+- [x] `backend/tests/{test_quota_service,test_auth_deps,test_api_auth_quota}.py` + hermetic conftest (68 passing)
+- [x] `plan/supabase-setup.md` — project, email OTP template, custom SMTP, schema
+- [ ] Verify live: create `query_usage`, then 2 anon queries → 429 → signup/OTP → unlimited
+
+## Phase 14: UI Redesign (modern chat product)
+**Depends on**: Phase 13
+**Estimated effort**: Large
+
+- [x] New tokens in `tailwind.config.js` + `index.css` (violet-indigo brand, mint accent, Space Grotesk/Inter)
+- [x] `services/supabase.js` + `hooks/useAuth.js` (session, signUp, verifyOtp, signIn, signOut)
+- [x] `services/api.js` — Bearer token + `X-Anon-Id`, quota-aware error helpers, `getMe`
+- [x] `components/AuthModal.jsx` (signup → OTP → verify, sign in) and `components/QuotaBadge.jsx`
+- [x] Rebuilt `App.jsx` shell, `Sidebar`, `ChatMessage` (incl. quota gate), `Composer`, `QuerySuggestions`, `SearchResults`, `LoadingSpinner`
+- [x] Removed fake telemetry; deleted dead `pages/Home.jsx` + `ImageInput/VoiceInput/TextInput`
+- [x] Verify: `npm run build` clean; empty state, modal, suggestions and results screenshotted
+
+---
+
 ## Summary
 
 | Phase | Description | Status | Files |
@@ -307,3 +337,5 @@ Each phase must be completed before its dependents can begin (see dependency col
 | 10 | Frontend Results | Completed | SearchResults.jsx |
 | 11 | Testing & Polish | Completed | tests/* (36 tests), README.md |
 | 12 | Evaluation | Completed | evaluation/*, tests/test_evaluation.py |
+| 13 | Supabase Auth & Quota | Completed (live table pending) | services/{supabase_client,auth_service,quota_service}.py, api/{deps,routes_me}.py, supabase/schema.sql |
+| 14 | UI Redesign | Completed | App.jsx, components/*, services/supabase.js, hooks/useAuth.js |

@@ -30,8 +30,23 @@ uvicorn app:app --reload --port 8000
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/health` | Status + whether the embedding model is loaded |
-| POST | `/api/query/suggestions` | `multipart/form-data` with any of `image`, `audio`, `text` → scored, diverse query suggestions |
+| GET | `/api/me` | Current quota + signed-in email (for the header badge) |
+| POST | `/api/query/suggestions` | `multipart/form-data` with any of `image`, `audio`, `text` → scored, diverse query suggestions (quota-gated) |
 | POST | `/api/search` | JSON `{ "query": "..." }` → reranked search results |
+
+## Auth & quota
+
+Auth and the database run on **Supabase** (see [../plan/supabase-setup.md](../plan/supabase-setup.md)).
+
+- A logged-out visitor gets `ANONYMOUS_FREE_QUERIES` (default **2**) suggestion generations.
+  The 3rd returns `429 QUOTA_EXCEEDED` and the frontend opens the login popup.
+- Signed-in users are unlimited. The frontend authenticates with Supabase (email + password +
+  emailed OTP) and sends the access token as `Authorization: Bearer <token>`.
+- Anonymous usage is keyed by the `X-Anon-Id` header, falling back to the client IP.
+- The service-role (secret) key is **backend-only** — never expose it to the browser.
+
+If Supabase is not configured the backend logs a warning and runs **unmetered** so local
+development still works.
 
 ## Architecture
 
@@ -73,4 +88,9 @@ Intentionality and diversity are label-free, so the sample runs without ground t
 
 ## Configuration
 
-All configuration is environment-driven (see `.env.example`): Groq/SerpAPI keys, model names, candidate/suggestion counts, MMR lambda, top-k values, upload size limits, and CORS origins.
+All configuration is environment-driven (see `.env.example`): Groq/SerpAPI keys, Supabase URL +
+keys, anonymous free-query limit and window, model names, candidate/suggestion counts, MMR lambda,
+top-k values, upload size limits, and CORS origins.
+
+Supabase accepts either naming scheme: `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY`, or the
+newer `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY`.

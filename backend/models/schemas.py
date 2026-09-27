@@ -20,10 +20,24 @@ class QuerySuggestion(BaseModel):
     diversity_rank: int
 
 
+class QuotaInfo(BaseModel):
+    authenticated: bool = False
+    limit: int | None = None
+    used: int = 0
+    remaining: int | None = None
+
+
 class SuggestionResponse(BaseModel):
     success: bool = True
     suggestions: list[QuerySuggestion]
     context: MultimodalContext
+    quota: QuotaInfo | None = None
+
+
+class MeResponse(BaseModel):
+    authenticated: bool
+    email: str | None = None
+    quota: QuotaInfo | None = None
 
 
 class SearchRequest(BaseModel):

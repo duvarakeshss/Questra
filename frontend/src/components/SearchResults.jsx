@@ -8,55 +8,24 @@ function hostOf(url) {
   }
 }
 
-function RefId({ index }) {
-  return (
-    <span className="font-mono text-caption text-on-surface-variant">
-      REF_{String(1000 + index).padStart(4, '0')}
-    </span>
-  )
-}
-
 function MatchBadge({ score }) {
   if (typeof score !== 'number') return null
   const pct = Math.round(score * 100)
-  const isTop = pct >= 95
-  return (
-    <span
-      className={`font-mono text-label-code-sm px-space-xs py-0.5 rounded font-semibold ${
-        isTop
-          ? 'bg-secondary-fixed text-on-secondary-fixed'
-          : 'bg-surface-high text-on-surface-variant'
-      }`}
-    >
-      {pct}% Match
-    </span>
-  )
+  return <span className={pct >= 80 ? 'score score-high' : 'score score-mid'}>{pct}% match</span>
 }
 
 export default function SearchResults({ query, results, onRetry }) {
   if (results.length === 0) {
     return (
       <div className="space-y-space-md animate-fade-up">
-        <div className="flex items-center gap-space-xs">
-          <span className="font-mono text-label-technical text-primary uppercase font-bold tracking-widest">
-            [STAGE 03 // RESULT MATRIX]
-          </span>
-        </div>
-        <div className="rounded border border-outline-variant bg-surface-low p-space-xl text-center">
-          <p className="font-mono text-label-code-sm text-on-surface-variant uppercase mb-2">
-            CORPUS_RECALL: 0 RESULTS
+        <div className="rounded-xl border border-outline-variant bg-surface-low p-8 text-center">
+          <p className="text-body-md text-on-surface">No results found.</p>
+          <p className="mt-1 text-body-sm text-on-surface-variant">
+            Nothing came back for &ldquo;{query}&rdquo;. Try another idea or a different wording.
           </p>
-          <p className="text-body-md text-on-surface-variant">
-            Nothing found for <span className="font-medium text-on-surface">"{query}"</span>.
-            Try a different pathway or refine your query.
-          </p>
-          <button
-            type="button"
-            onClick={() => onRetry(query)}
-            className="mt-space-md inline-flex items-center gap-1.5 rounded border border-outline-variant bg-surface-lowest px-space-sm py-1.5 font-mono text-label-technical text-on-surface hover:border-outline hover:bg-surface-low transition-colors"
-          >
-            <Refresh />
-            Retry search
+          <button type="button" onClick={() => onRetry(query)} className="btn btn-secondary mt-space-md">
+            <Refresh className="h-4 w-4" />
+            Search again
           </button>
         </div>
       </div>
@@ -65,105 +34,56 @@ export default function SearchResults({ query, results, onRetry }) {
 
   return (
     <div className="space-y-space-md animate-fade-up">
-      {/* Stage header */}
-      <div className="flex flex-wrap items-center justify-between gap-space-sm rounded bg-surface-low px-space-sm py-space-xs border border-outline-variant">
-        <div className="flex items-center gap-space-sm min-w-0">
-          <span className="font-mono text-label-technical bg-primary-container text-on-primary px-space-xs py-0.5 rounded font-bold shrink-0">
-            ACTIVE QUERY
-          </span>
-          <span className="font-mono text-label-code-sm text-on-surface truncate">
-            "{query}"
-          </span>
-        </div>
-        <div className="flex items-center gap-space-xs shrink-0">
-          <span className="font-mono text-label-code-sm text-on-surface-variant">
-            CORPUS DENSITY: {results.length} SOURCES
-          </span>
-          <span className="h-3 w-px bg-outline-variant" />
-          <span className="font-mono text-label-code-sm text-secondary font-medium">
-            RECALL: 12ms
-          </span>
-        </div>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-display text-headline-sm text-on-surface">
+          Results for <span className="text-primary">&ldquo;{query}&rdquo;</span>
+        </h2>
+        <span className="text-body-sm text-on-surface-variant">
+          {results.length} {results.length === 1 ? 'source' : 'sources'}
+        </span>
       </div>
 
-      {/* Results list */}
       <ol className="space-y-space-sm">
         {results.map((result, index) => (
           <li key={`${result.url}-${index}`}>
-            <article className="result-article group">
-              {/* Header row */}
+            <article className="result-article">
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-space-xs min-w-0">
-                  <span className="font-mono text-label-code-sm text-secondary font-medium truncate">
-                    {hostOf(result.url)}
-                  </span>
-                  <MatchBadge score={result.score} />
-                </div>
-                <RefId index={index} />
+                <span className="truncate text-body-sm text-on-surface-variant">{hostOf(result.url)}</span>
+                <MatchBadge score={result.score} />
               </div>
 
-              {/* Title */}
               <a
                 href={result.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group/link inline-flex items-baseline gap-1.5 text-headline-sm font-semibold text-on-surface hover:text-primary transition-colors cursor-pointer"
+                className="group mt-1 inline-flex items-baseline gap-1.5 text-headline-sm font-semibold text-on-surface transition-colors hover:text-primary"
               >
                 <span className="line-clamp-2">{result.title || hostOf(result.url)}</span>
-                <ExternalLink className="h-3 w-3 shrink-0 translate-y-px text-on-surface-variant group-hover/link:text-primary" />
+                <ExternalLink className="h-3.5 w-3.5 shrink-0 translate-y-px text-on-surface-variant group-hover:text-primary" />
               </a>
 
-              {/* Snippet */}
               {result.snippet && (
-                <p className="text-body-sm leading-relaxed text-on-surface">
-                  {result.snippet}
-                </p>
+                <p className="mt-1.5 text-body-sm leading-relaxed text-on-surface-variant">{result.snippet}</p>
               )}
 
-              {/* Thumbnail */}
               {result.thumbnail && (
                 <img
                   src={result.thumbnail}
                   alt=""
                   loading="lazy"
-                  onError={(event) => { event.currentTarget.style.display = 'none' }}
-                  className="mt-space-xs h-32 w-full rounded object-cover border border-outline-variant"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none'
+                  }}
+                  className="mt-space-sm max-h-56 w-full rounded-lg border border-outline-variant object-cover"
                 />
               )}
-
-              {/* Metadata footer */}
-              <div className="flex flex-wrap items-center justify-between gap-space-xs pt-space-xs border-t border-outline-variant">
-                <div className="flex flex-wrap items-center gap-space-xs font-mono text-label-code-sm text-on-surface-variant">
-                  <span className="bg-surface-high px-space-xs py-0.5 rounded">
-                    {index === 0 ? 'Featured Source' : index === 1 ? 'Workshop Manual' : 'Academic Paper'}
-                  </span>
-                  <span>·</span>
-                  <span>{index < 2 ? 'Peer Reviewed' : 'DOI Reference'}</span>
-                  {index === 0 && (
-                    <>
-                      <span>·</span>
-                      <span className="text-secondary font-medium">HIGH CONFIDENCE</span>
-                    </>
-                  )}
-                </div>
-                <div className="flex items-center gap-1">
-                  <a
-                    href={result.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded px-space-xs py-1 bg-primary text-on-primary hover:bg-clay-deep font-mono text-label-technical transition-colors"
-                  >
-                    Open in Reader
-                  </a>
-                </div>
-              </div>
             </article>
           </li>
         ))}
       </ol>
 
-      <p className="font-mono text-label-code-sm text-on-surface-variant">
-        Want a different angle? Choose another pathway above or submit a new search below.
+      <p className="text-body-sm text-on-surface-variant">
+        Want a different angle? Pick another idea above or start a new search.
       </p>
     </div>
   )

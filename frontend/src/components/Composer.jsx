@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, Close, Image as ImageIcon, Mic, Stop, Layers } from './Icons'
+
+import { ArrowUp, Close, Image as ImageIcon, Mic, Stop } from './Icons'
 
 const MAX_IMAGE_MB = 10
 const MAX_AUDIO_MB = 25
@@ -47,19 +48,12 @@ function describeMicError(error) {
   }
 }
 
-const MODALITIES = [
-  { id: 'text', label: 'Text Lexical', icon: 'T' },
-  { id: 'vision', label: 'CV Vision', icon: '◈' },
-  { id: 'vox', label: 'Spectral Vox', icon: '∿' },
-]
-
 export default function Composer({ onSubmit, onError, disabled = false, autoFocus = false }) {
   const [text, setText] = useState('')
   const [image, setImage] = useState(null)
   const [imageUrl, setImageUrl] = useState(null)
   const [audio, setAudio] = useState(null)
   const [recording, setRecording] = useState(false)
-  const [activeModalities, setActiveModalities] = useState(new Set(['text']))
   const [micBlocked, setMicBlocked] = useState(false)
 
   const textareaRef = useRef(null)
@@ -75,7 +69,7 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
     const node = textareaRef.current
     if (!node) return
     node.style.height = 'auto'
-    node.style.height = `${Math.min(node.scrollHeight, 192)}px`
+    node.style.height = `${Math.min(node.scrollHeight, 200)}px`
   }, [text])
 
   useEffect(() => {
@@ -106,7 +100,6 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
     }
     onError(null)
     setImage(selected)
-    setActiveModalities(prev => new Set([...prev, 'vision']))
   }
 
   function acceptAudio(selected) {
@@ -117,7 +110,6 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
     }
     onError(null)
     setAudio(selected)
-    setActiveModalities(prev => new Set([...prev, 'vox']))
   }
 
   async function startRecording() {
@@ -149,7 +141,6 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
         setAudio(new File([blob], `recording.${extension}`, { type }))
         stream.getTracks().forEach((track) => track.stop())
         setRecording(false)
-        setActiveModalities(prev => new Set([...prev, 'vox']))
       }
       recorder.start()
       recorderRef.current = recorder
@@ -157,7 +148,9 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
       onError(null)
     } catch (error) {
       stream.getTracks().forEach((track) => track.stop())
-      onError(`Recording is not supported in this browser (${error?.name || 'unknown error'}). Attach an audio file instead.`)
+      onError(
+        `Recording is not supported in this browser (${error?.name || 'unknown error'}). Attach an audio file instead.`,
+      )
     }
   }
 
@@ -171,7 +164,6 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
     setText('')
     setImage(null)
     setAudio(null)
-    setActiveModalities(new Set(['text']))
   }
 
   function handleKeyDown(event) {
@@ -184,88 +176,23 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
   const hasAttachment = Boolean(image || audio)
 
   return (
-    <div className="w-full bg-surface-lowest rounded-lg shadow-composer border border-outline-variant overflow-hidden transition-all focus-within:border-primary focus-within:shadow-card-hover">
-      {/* Modalities strip */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant bg-surface-low/60 px-space-sm py-1.5">
-        <div className="flex items-center gap-1">
-          <span className="font-mono text-label-technical text-on-surface-variant uppercase mr-1 flex items-center gap-1">
-            <Layers className="h-3 w-3 text-primary" />
-            Ingestion:
-          </span>
-          {MODALITIES.map(({ id, label }) => {
-            const isActive = activeModalities.has(id)
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => {
-                  setActiveModalities(prev => {
-                    const next = new Set(prev)
-                    if (next.has(id) && id !== 'text') next.delete(id)
-                    else next.add(id)
-                    return next
-                  })
-                }}
-                className={`inline-flex items-center gap-1 px-space-xs py-0.5 rounded font-mono text-label-code-sm font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-primary text-on-primary shadow-xs'
-                    : 'bg-surface-container text-on-surface-variant hover:bg-surface-high hover:text-on-surface'
-                }`}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="flex items-center gap-space-xs">
-          <span className="font-mono text-label-code-sm text-on-surface-variant uppercase">Engine:</span>
-          <div className="flex items-center p-0.5 bg-surface-container rounded">
-            <span className="px-space-xs py-0.5 bg-surface-lowest text-primary font-mono text-label-code-sm font-bold rounded shadow-xs">
-              ColBERT v2 Hybrid
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Attachment tray */}
+    <div className="overflow-hidden rounded-2xl border border-outline-variant bg-surface-lowest shadow-composer transition-colors focus-within:border-primary">
       {hasAttachment && (
-        <div className="flex flex-wrap gap-2 px-space-sm pt-space-sm pb-1 border-b border-outline-variant/60">
+        <div className="flex flex-wrap gap-2 border-b border-outline-variant/70 px-3 pt-3">
           {image && (
-            <div className="inline-flex items-center gap-1.5 px-space-xs py-1 rounded bg-surface-lowest border border-outline-variant shadow-xs">
-              <img src={imageUrl} alt="" className="w-6 h-6 rounded object-cover" />
-              <span className="font-mono text-label-code-sm font-semibold text-primary max-w-[12rem] truncate">
-                IMG: {image.name}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setImage(null)
-                  setActiveModalities(prev => { const n = new Set(prev); n.delete('vision'); return n })
-                }}
-                className="text-on-surface-variant hover:text-error transition-colors"
-                aria-label="Remove image"
-              >
+            <div className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-low py-1 pl-1 pr-2">
+              <img src={imageUrl} alt="" className="h-7 w-7 rounded object-cover" />
+              <span className="max-w-[12rem] truncate text-body-sm text-on-surface">{image.name}</span>
+              <button type="button" onClick={() => setImage(null)} className="text-on-surface-variant hover:text-error" aria-label="Remove image">
                 <Close className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
           {audio && (
-            <div className="inline-flex items-center gap-1.5 px-space-xs py-1 rounded bg-secondary-fixed/70 border border-secondary-fixed text-on-secondary-fixed">
-              <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-ping" />
-              <Mic className="h-3.5 w-3.5 text-secondary" />
-              <span className="font-mono text-label-code-sm font-medium max-w-[12rem] truncate">
-                VOX: {audio.name}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setAudio(null)
-                  setActiveModalities(prev => { const n = new Set(prev); n.delete('vox'); return n })
-                }}
-                className="text-on-secondary-fixed hover:text-error transition-colors"
-                aria-label="Remove audio"
-              >
+            <div className="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft py-1 pl-2 pr-2">
+              <Mic className="h-3.5 w-3.5 text-accent-ink" />
+              <span className="max-w-[12rem] truncate text-body-sm text-accent-ink">{audio.name}</span>
+              <button type="button" onClick={() => setAudio(null)} className="text-accent-ink/70 hover:text-error" aria-label="Remove audio">
                 <Close className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -273,49 +200,34 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
         </div>
       )}
 
-      {/* Query editor */}
-      <div className="px-space-sm pt-space-sm pb-1 bg-surface-lowest">
-        <div className="flex items-start gap-space-xs">
-          <span className="font-mono text-label-code-sm text-primary font-bold select-none pt-1.5 shrink-0">
-            ir://query&gt;
-          </span>
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={text}
-            autoFocus={autoFocus}
-            disabled={disabled}
-            onChange={(event) => setText(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Describe your search — type a query, attach an image, or record voice input…"
-            className="max-h-48 w-full resize-none bg-transparent text-body-lg leading-relaxed text-on-surface outline-none placeholder:text-on-surface-variant/50"
-          />
-        </div>
-      </div>
+      <textarea
+        ref={textareaRef}
+        rows={1}
+        value={text}
+        autoFocus={autoFocus}
+        disabled={disabled}
+        onChange={(event) => setText(event.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Ask anything — attach a picture or say it out loud…"
+        className="max-h-[200px] w-full resize-none bg-transparent px-4 pt-3.5 text-body-lg leading-relaxed text-on-surface outline-none placeholder:text-on-surface-variant/50"
+      />
 
-      {/* Control bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant/60 px-space-sm py-2">
+      <div className="flex items-center justify-between gap-2 px-3 pb-2.5 pt-1">
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => imageInputRef.current?.click()}
             disabled={disabled || recording}
-            className="btn btn-technical gap-1"
+            className="btn btn-ghost gap-1.5"
             title="Add image"
-            aria-label="Add image"
           >
-            <ImageIcon className="h-3.5 w-3.5" />
-            + Image
+            <ImageIcon className="h-4 w-4" />
+            Image
           </button>
           {recording ? (
-            <button
-              type="button"
-              onClick={stopRecording}
-              className="btn btn-technical gap-1 text-primary"
-              title="Stop recording"
-            >
+            <button type="button" onClick={stopRecording} className="btn btn-ghost gap-1.5 text-error" title="Stop recording">
               <Stop className="h-3.5 w-3.5" />
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-secondary" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-error" />
               Stop
             </button>
           ) : (
@@ -323,34 +235,32 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
               type="button"
               onClick={startRecording}
               disabled={disabled}
-              className="btn btn-technical gap-1"
+              className="btn btn-ghost gap-1.5"
               title={recordingSupported ? 'Record voice' : 'Attach an audio file'}
               aria-label={recordingSupported ? 'Record voice' : 'Attach an audio file'}
             >
-              <Mic className="h-3.5 w-3.5" />
-              {recordingSupported ? 'Vox' : 'Audio'}
+              <Mic className="h-4 w-4" />
+              {recordingSupported ? 'Voice' : 'Audio'}
             </button>
           )}
         </div>
 
-        <div className="flex items-center gap-space-sm">
-          <span className="hidden font-mono text-label-code-sm text-on-surface-variant md:inline">
-            PRESS ⌘↵ TO SYNTHESIZE
-          </span>
+        <div className="flex items-center gap-2">
+          {hasContent && (
+            <span className="hidden text-caption text-on-surface-variant sm:inline">Enter to search</span>
+          )}
           <button
             type="button"
             onClick={submit}
             disabled={!hasContent || disabled}
-            className="flex items-center gap-1.5 rounded bg-primary px-space-sm py-1.5 font-mono text-label-technical text-on-primary shadow-xs transition-all hover:bg-clay-deep active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
-            aria-label="Submit search"
+            className="btn btn-primary rounded-full px-3 py-2"
+            aria-label="Search"
           >
-            <ArrowUp className="h-3.5 w-3.5" />
-            Synthesize Intent
+            <ArrowUp className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {/* Hidden file inputs */}
       <input
         ref={imageInputRef}
         type="file"

@@ -118,12 +118,26 @@ Tailwind CSS.
 Three layers, with a strict one-way dependency: **API → Pipeline → Services**.
 
 1. **API layer** (`api/`) — HTTP routes. Parses and validates requests, maps typed errors to
-   HTTP responses, returns Pydantic responses. **No business logic.**
+   HTTP responses, returns Pydantic responses. **No business logic.** Auth/quota are resolved
+   here via dependencies (`api/deps.py`) that delegate to services.
 2. **Pipeline layer** (`pipeline/`) — one responsibility per module (speech→text, image→
    description, fuse, generate, score, select, search, rerank). Modules orchestrate services
    but never reach into each other's internals.
-3. **Services layer** (`services/`) — thin wrappers around externals (Groq, SerpAPI) and the
-   local embedding model. Stateless except for the embedding-model singleton.
+3. **Services layer** (`services/`) — thin wrappers around externals (Groq, SerpAPI, Supabase)
+   and the local embedding model. Stateless except for the embedding-model singleton.
+   `supabase_client`, `auth_service` and `quota_service` live here; the service-role key never
+   leaves the backend.
+
+### 3.3 Auth & free-query quota (Supabase)
+
+Auth (email + password + emailed OTP) and the quota table run on **Supabase**. The frontend
+authenticates with `supabase-js` and sends `Authorization: Bearer <token>`; the backend validates
+it via Supabase (`auth_service`) and meters usage in `public.query_usage`:
+
+- Logged-out visitors get `ANONYMOUS_FREE_QUERIES` (default 2) suggestion generations, keyed by
+  `X-Anon-Id` (falling back to client IP); the next call returns `429 QUOTA_EXCEEDED`.
+- Signed-in users are unlimited.
+- Setup steps live in [supabase-setup.md](supabase-setup.md).
 
 These boundaries are what make each pipeline module independently testable and keep the
 provider choice swappable.
@@ -420,6 +434,11 @@ Nothing sensitive or tunable is hardcoded.
 | `RERANK_TOP_K` | No | `5` | Results after reranking |
 | `MAX_IMAGE_SIZE_MB` | No | `10` | Image upload limit |
 | `MAX_AUDIO_SIZE_MB` | No | `25` | Audio upload limit |
+| `SUPABASE_URL` | For auth/quota | — | Supabase project URL |
+| `SUPABASE_ANON_KEY` / `SUPABASE_PUBLISHABLE_KEY` | For auth/quota | — | Public browser-safe key |
+| `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY` | For auth/quota | — | Backend-only key (bypasses RLS) |
+| `ANONYMOUS_FREE_QUERIES` | No | `2` | Free suggestion generations for logged-out visitors |
+| `QUOTA_WINDOW_HOURS` | No | `24` | Rolling window for the free quota (`0` = all-time) |
 
 ---
 
@@ -435,6 +454,8 @@ Nothing sensitive or tunable is hardcoded.
 | `SEARCH_ERROR` | 502 | SerpAPI failure |
 | `GENERATION_FAILED` | 500 | Could not parse LLM output into queries |
 | `SCORING_FAILED` | 500 | Could not parse LLM scoring output |
+| `UNAUTHORIZED` | 401 | Session token is invalid or expired |
+| `QUOTA_EXCEEDED` | 429 | Free query limit reached — sign in to continue |
 
 Internal details (stack traces, API keys) are never exposed to the client.
 

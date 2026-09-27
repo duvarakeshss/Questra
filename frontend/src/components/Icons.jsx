@@ -168,3 +168,56 @@ export function Hub({ className = 'h-4 w-4' }) {
     </svg>
   )
 }
+
+export function Lock({ className = 'h-4 w-4' }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="4.25" y="8.75" width="11.5" height="7.5" rx="2" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M6.75 8.75V7a3.25 3.25 0 016.5 0v1.75" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export function Mail({ className = 'h-4 w-4' }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="2.75" y="4.5" width="14.5" height="11" rx="2.25" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M3.5 6.5l5.4 4.1a2 2 0 002.2 0l5.4-4.1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function Check({ className = 'h-4 w-4' }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M4.5 10.5l3.2 3.2 7.8-8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function LogOut({ className = 'h-4 w-4' }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M7.5 3.75H5.25A1.75 1.75 0 003.5 5.5v9a1.75 1.75 0 001.75 1.75H7.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M12.5 13.5L16 10l-3.5-3.5M16 10H8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function User({ className = 'h-4 w-4' }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="10" cy="7" r="3.25" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M4 16.25c.6-2.7 3-4.25 6-4.25s5.4 1.55 6 4.25" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export function Sparkle({ className = 'h-4 w-4' }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M10 2.5l1.6 4.4 4.4 1.6-4.4 1.6L10 14.5l-1.6-4.4L4 8.5l4.4-1.6L10 2.5z" fill="currentColor" />
+      <path d="M15.5 13l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8z" fill="currentColor" opacity="0.6" />
+    </svg>
+  )
+}

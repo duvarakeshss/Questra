@@ -85,6 +85,10 @@ uvicorn app:app --reload --port 8000
 
 Leave the venv activated for every backend command. Never commit `.env` or `.venv`.
 
+Auth and the free-query quota need Supabase: add `SUPABASE_URL` + keys to `.env`, run
+`backend/supabase/schema.sql`, and enable email OTP + custom SMTP in the dashboard — see
+[supabase-setup.md](supabase-setup.md). Without Supabase the backend runs unmetered.
+
 ---
 
 ## 5. Frontend setup and run
@@ -129,7 +133,10 @@ to a single provider.
 - **Uploads are processed in memory.** Validate MIME type and size, then discard; never persist
   user media. Clean any temp files after processing.
 - **Secrets never leave the backend.** The frontend never sees an API key. Never log keys, raw
-  uploads, or sensitive user data.
+  uploads, or sensitive user data. The Supabase **service-role/secret** key is backend-only — it
+  must never appear in the frontend or any `VITE_*` variable. Auth and the free-query quota run on
+  Supabase; setup is in [supabase-setup.md](supabase-setup.md). Meter usage in `public.query_usage`
+  through `services/quota_service.py` (never hardcode limits — they come from settings).
 - **Inference only.** No RL training, no database, no microservices, no vector DB unless a real
   requirement proves it necessary.
 

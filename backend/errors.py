@@ -45,3 +45,13 @@ class GenerationFailedError(QuestraError):
 class ScoringFailedError(QuestraError):
     code = "SCORING_FAILED"
     status_code = 500
+
+
+class UnauthorizedError(QuestraError):
+    code = "UNAUTHORIZED"
+    status_code = 401
+
+
+class QuotaExceededError(QuestraError):
+    code = "QUOTA_EXCEEDED"
+    status_code = 429

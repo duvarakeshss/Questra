@@ -1,24 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
-import Sidebar from './components/Sidebar'
-import Composer from './components/Composer'
-import ChatMessage from './components/ChatMessage'
-import { Brand, Menu } from './components/Icons'
-import { extractError, generateSuggestions, search } from './services/api'
 
-const STORAGE_KEY = 'questra.conversations.v1'
+import AuthModal from './components/AuthModal'
+import ChatMessage from './components/ChatMessage'
+import Composer from './components/Composer'
+import QuotaBadge from './components/QuotaBadge'
+import Sidebar from './components/Sidebar'
+import { Brand, Menu } from './components/Icons'
+import { extractError, generateSuggestions, getMe, isQuotaError, search } from './services/api'
+import { useAuth } from './hooks/useAuth'
+
+const STORAGE_KEY = 'questra.conversations.v2'
+
+const EXAMPLES = [
+  'A cozy reading nook under $300',
+  'Running shoes like this but cheaper',
+  'Explain this chart to me in plain words',
+]
 
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 
 function createConversation() {
-  return { id: uid(), createdAt: Date.now(), title: 'New Investigation', messages: [] }
+  return { id: uid(), createdAt: Date.now(), title: 'New search', messages: [] }
 }
 
 function titleFor(inputs) {
   const text = inputs.text?.trim().replace(/\s+/g, ' ')
-  if (text) return text.length > 48 ? `${text.slice(0, 48)}…` : text
-  if (inputs.image) return 'CV Vision Search'
-  if (inputs.audio) return 'Spectral Vox Search'
-  return 'New Investigation'
+  if (text) return text.length > 46 ? `${text.slice(0, 46)}…` : text
+  if (inputs.image) return 'Image search'
+  if (inputs.audio) return 'Voice search'
+  return 'New search'
 }
 
 function loadConversations() {
@@ -52,18 +62,17 @@ function persist(conversations) {
   }
 }
 
-// Session ID generator (short investigation code)
-let _sessionSeq = 4091
-function getSessionCode() {
-  return `INV_${_sessionSeq}_SEARCH`
-}
-
 export default function App() {
+  const auth = useAuth()
   const [conversations, setConversations] = useState(() => loadConversations() ?? [createConversation()])
   const [activeId, setActiveId] = useState(() => conversations[0].id)
+  const [account, setAccount] = useState(null)
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [authOpen, setAuthOpen] = useState(false)
+  const [authMessage, setAuthMessage] = useState(null)
+  const gateRef = useRef(null)
   const scrollRef = useRef(null)
 
   const active = conversations.find((conversation) => conversation.id === activeId) ?? conversations[0]
@@ -77,6 +86,18 @@ export default function App() {
     const node = scrollRef.current
     if (node) node.scrollTop = node.scrollHeight
   }, [active.messages.length, busy])
+
+  useEffect(() => {
+    let cancelled = false
+    getMe()
+      .then((data) => {
+        if (!cancelled) setAccount(data)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [auth.session])
 
   function patchActive(updater) {
     setConversations((prev) => prev.map((c) => (c.id === activeId ? updater(c) : c)))
@@ -111,12 +132,13 @@ export default function App() {
       id: uid(),
       role: 'assistant',
       kind: 'thinking',
-      message: 'Reading your input and drafting query pathways',
+      message: 'Reading your input and drafting query ideas',
     }
     appendMessages([userMessage, pending], titleFor(inputs))
 
     try {
       const data = await generateSuggestions(inputs)
+      if (data.quota) setAccount((prev) => ({ ...(prev ?? {}), authenticated: data.quota.authenticated, quota: data.quota }))
       replaceMessage(pending.id, {
         id: pending.id,
         role: 'assistant',
@@ -126,12 +148,24 @@ export default function App() {
         inputs,
       })
     } catch (err) {
-      replaceMessage(pending.id, {
-        id: pending.id,
-        role: 'assistant',
-        kind: 'error',
-        message: extractError(err),
-      })
+      if (isQuotaError(err)) {
+        gateRef.current = { id: pending.id, inputs }
+        replaceMessage(pending.id, {
+          id: pending.id,
+          role: 'assistant',
+          kind: 'gate',
+          message: "You've used your free queries. Create a free account to keep searching.",
+        })
+        setAuthMessage("You've used your free queries. Create a free account to keep searching.")
+        setAuthOpen(true)
+      } else {
+        replaceMessage(pending.id, {
+          id: pending.id,
+          role: 'assistant',
+          kind: 'error',
+          message: extractError(err),
+        })
+      }
     } finally {
       setBusy(false)
     }
@@ -143,12 +177,7 @@ export default function App() {
     setBusy(true)
 
     const userMessage = { id: uid(), role: 'user', kind: 'text', text: query }
-    const pending = {
-      id: uid(),
-      role: 'assistant',
-      kind: 'thinking',
-      message: 'Searching corpus and reranking results',
-    }
+    const pending = { id: uid(), role: 'assistant', kind: 'thinking', message: 'Searching and reranking results' }
     appendMessages([userMessage, pending], query)
 
     try {
@@ -180,11 +209,12 @@ export default function App() {
       id: messageId,
       role: 'assistant',
       kind: 'thinking',
-      message: 'Synthesizing alternative intent pathways',
+      message: 'Drafting fresh query ideas',
     })
 
     try {
       const data = await generateSuggestions(inputs)
+      if (data.quota) setAccount((prev) => ({ ...(prev ?? {}), authenticated: data.quota.authenticated, quota: data.quota }))
       replaceMessage(messageId, {
         id: messageId,
         role: 'assistant',
@@ -194,19 +224,43 @@ export default function App() {
         inputs,
       })
     } catch (err) {
-      replaceMessage(messageId, {
-        id: messageId,
-        role: 'assistant',
-        kind: 'error',
-        message: extractError(err),
-      })
+      if (isQuotaError(err)) {
+        gateRef.current = { id: messageId, inputs }
+        replaceMessage(messageId, {
+          id: messageId,
+          role: 'assistant',
+          kind: 'gate',
+          message: "You've used your free queries. Create a free account to keep searching.",
+        })
+        setAuthMessage("You've used your free queries. Create a free account to keep searching.")
+        setAuthOpen(true)
+      } else {
+        replaceMessage(messageId, {
+          id: messageId,
+          role: 'assistant',
+          kind: 'error',
+          message: extractError(err),
+        })
+      }
     } finally {
       setBusy(false)
     }
   }
 
+  async function handleAuthenticated() {
+    setAuthOpen(false)
+    setAuthMessage(null)
+    try {
+      setAccount(await getMe())
+    } catch {
+      /* quota refresh is best-effort */
+    }
+    const gate = gateRef.current
+    gateRef.current = null
+    if (gate) handleRegenerate(gate.id, gate.inputs)
+  }
+
   function handleNewSearch() {
-    _sessionSeq += 1
     const conversation = createConversation()
     setConversations((prev) => [conversation, ...prev])
     setActiveId(conversation.id)
@@ -214,10 +268,9 @@ export default function App() {
     setSidebarOpen(false)
   }
 
-  function handleSelectConversation(id) {
-    setActiveId(id)
-    setError(null)
-    setSidebarOpen(false)
+  function handleSignOut() {
+    auth.signOut()
+    setAccount(null)
   }
 
   return (
@@ -225,119 +278,93 @@ export default function App() {
       <Sidebar
         conversations={conversations.filter((conversation) => conversation.messages.length > 0)}
         activeId={active.id}
-        onSelect={handleSelectConversation}
+        onSelect={(id) => {
+          setActiveId(id)
+          setError(null)
+          setSidebarOpen(false)
+        }}
         onNew={handleNewSearch}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        account={account}
+        onSignIn={() => {
+          setAuthMessage(null)
+          setAuthOpen(true)
+        }}
+        onSignOut={handleSignOut}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Top header bar — visible on all sizes */}
-        <header className="flex items-center justify-between border-b border-outline-variant bg-surface-lowest/90 px-space-md py-2.5 shadow-header backdrop-blur-md">
+        <header className="flex items-center justify-between border-b border-outline-variant bg-surface/80 px-space-md py-2.5 backdrop-blur-md">
           <div className="flex items-center gap-space-sm">
-            {/* Mobile menu toggle */}
-            <button
-              type="button"
-              className="btn btn-ghost p-1.5 md:hidden"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open menu"
-            >
+            <button type="button" className="btn-icon md:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
               <Menu />
             </button>
-            {/* Brand — desktop shows it here since sidebar has it, mobile needs it */}
-            <div className="flex items-center gap-space-sm md:hidden">
-              <Brand className="h-7 w-7 shrink-0" />
-              <div className="flex flex-col leading-none">
-                <span className="font-sans text-[13px] font-semibold tracking-[-0.01em] text-on-surface uppercase">
-                  QUESTRA
-                </span>
-              </div>
+            <div className="flex items-center gap-2 md:hidden">
+              <Brand className="h-7 w-7" />
+              <span className="font-display text-[15px] font-semibold tracking-tight text-on-surface">Questra</span>
             </div>
-            {/* Desktop — session indicator */}
-            <div className="hidden md:flex items-center gap-space-xs bg-surface-low px-space-sm py-1 rounded border border-outline-variant">
-              <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
-              <span className="font-mono text-label-code-sm text-on-surface-variant">
-                INDEX KERNEL: BM25+COLBERT_V2
-              </span>
-            </div>
-            <span className="hidden md:inline font-mono text-label-code-sm text-secondary font-medium">
-              SESSION: {getSessionCode()}
-            </span>
+            <p className="hidden text-body-sm text-on-surface-variant md:block">
+              Describe it in words, show a picture, or say it out loud.
+            </p>
           </div>
 
-          {/* Right side controls */}
-          <div className="flex items-center gap-space-xs">
-            <div className="hidden md:flex items-center gap-space-xs bg-surface-low px-space-sm py-1.5 rounded border border-outline-variant">
-              <span className="h-2 w-2 rounded-full bg-secondary" />
-              <span className="font-mono text-label-technical text-on-surface-variant">
-                Index Online · 48.2B Docs
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={handleNewSearch}
-              className="flex items-center gap-1 rounded bg-primary px-space-sm py-1.5 font-mono text-label-technical text-on-primary transition-all hover:bg-clay-deep"
-            >
-              <span className="text-[16px] font-light">+</span>
-              <span className="hidden sm:inline">New Investigation</span>
+          <div className="flex items-center gap-space-sm">
+            <QuotaBadge
+              quota={account?.quota}
+              authenticated={Boolean(account?.authenticated)}
+              email={account?.email}
+              onSignIn={() => {
+                setAuthMessage(null)
+                setAuthOpen(true)
+              }}
+              onSignOut={handleSignOut}
+            />
+            <button type="button" onClick={handleNewSearch} className="btn btn-primary py-2">
+              New search
             </button>
           </div>
         </header>
 
-        {/* Main content */}
         {isEmpty ? (
-          /* ─── Empty state: Multimodal Command Console ─── */
-          <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-space-md py-10">
-            <div className="w-full max-w-2xl animate-fade-up">
-              {/* Console header */}
+          <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto px-space-md py-10">
+            <div className="grid-fade pointer-events-none absolute inset-x-0 top-0 h-72" aria-hidden="true" />
+            <div className="relative w-full max-w-2xl animate-fade-up">
               <div className="pb-space-lg text-center">
-                <div className="mb-space-md flex justify-center">
-                  <Brand className="h-14 w-14" />
+                <div className="mx-auto mb-space-md flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-card">
+                  <Brand className="h-8 w-8" />
                 </div>
-                <div className="flex items-center justify-center gap-space-xs mb-space-sm">
-                  <span className="font-mono text-label-technical text-primary uppercase font-bold tracking-widest">
-                    [STAGE 01 // MULTIMODAL COMMAND CONSOLE]
-                  </span>
-                </div>
-                <h1 className="text-headline-lg font-semibold tracking-tight text-on-surface">
-                  Multimodal Search Console
+                <h1 className="font-display text-display-hero text-on-surface">
+                  Find it by describing it
                 </h1>
-                <p className="mx-auto mt-space-sm max-w-lg text-body-md leading-relaxed text-on-surface-variant">
-                  Advanced retrieval fusing text, computer vision, and acoustic seeds into verified research pathways.
-                  Describe it in words, show a picture, or say it out loud.
+                <p className="mx-auto mt-space-sm max-w-lg text-body-lg text-on-surface-variant">
+                  Questra turns a photo, a voice note, or a few loose words into clear search queries you can
+                  review and refine before you commit.
                 </p>
-
-                {/* Real-time status bar */}
-                <div className="mt-space-md inline-flex flex-wrap items-center gap-space-sm rounded border border-outline-variant bg-surface-low px-space-sm py-space-xs text-center">
-                  <div className="flex items-center gap-1 font-mono text-label-code-sm text-on-surface-variant">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-on-surface font-semibold">18ms</span>
-                    <span className="text-outline">LATENCY</span>
-                  </div>
-                  <span className="text-outline-variant">|</span>
-                  <div className="flex items-center gap-1 font-mono text-label-code-sm text-on-surface-variant">
-                    <span className="text-on-surface font-semibold">3</span>
-                    <span className="text-outline">MODALITIES</span>
-                  </div>
-                  <span className="text-outline-variant">|</span>
-                  <div className="flex items-center gap-1 font-mono text-label-code-sm text-on-surface-variant">
-                    <span className="text-secondary font-semibold">48.2B</span>
-                    <span className="text-outline">INDEXED</span>
-                  </div>
-                </div>
               </div>
 
               {error && (
-                <p className="pb-space-sm text-center font-mono text-label-code-sm text-error">
-                  {error}
-                </p>
+                <p className="pb-space-sm text-center text-body-sm text-error">{error}</p>
               )}
 
               <Composer onSubmit={handleSubmit} onError={setError} disabled={busy} autoFocus />
+
+              <div className="mt-space-md flex flex-wrap justify-center gap-2">
+                {EXAMPLES.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    className="chip"
+                    disabled={busy}
+                    onClick={() => handleSubmit({ text: example })}
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
-          /* ─── Conversation view ─── */
           <>
             <div ref={scrollRef} className="flex-1 overflow-y-auto">
               <div className="mx-auto w-full max-w-3xl space-y-space-xl px-space-md py-space-xl md:px-space-lg">
@@ -348,26 +375,35 @@ export default function App() {
                     onSelectQuery={handleSelectQuery}
                     onRegenerate={handleRegenerate}
                     onError={setError}
+                    onSignIn={() => {
+                      setAuthMessage(null)
+                      setAuthOpen(true)
+                    }}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Sticky composer footer */}
-            <div className="border-t border-outline-variant bg-surface-lowest/90 px-space-md py-space-sm backdrop-blur-md">
+            <div className="border-t border-outline-variant bg-surface/85 px-space-md py-space-sm backdrop-blur-md">
               <div className="mx-auto w-full max-w-3xl">
-                {error && (
-                  <p className="pb-space-xs font-mono text-label-code-sm text-error">{error}</p>
-                )}
+                {error && <p className="pb-space-xs text-body-sm text-error">{error}</p>}
                 <Composer onSubmit={handleSubmit} onError={setError} disabled={busy} />
-                <p className="pt-space-xs text-center font-mono text-caption text-on-surface-variant">
-                  Questra synthesizes intent pathways before searching. Review queries before trusting results.
+                <p className="pt-space-xs text-center text-caption text-on-surface-variant">
+                  Review the suggested queries before trusting the results.
                 </p>
               </div>
             </div>
           </>
         )}
       </div>
+
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        auth={auth}
+        message={authMessage}
+        onAuthenticated={handleAuthenticated}
+      />
     </div>
   )
 }

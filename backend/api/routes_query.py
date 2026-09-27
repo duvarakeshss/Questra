@@ -1,5 +1,7 @@
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
+from api.deps import client_subject, current_user
+from config.settings import settings
 from errors import NoInputError, ScoringFailedError
 from models.schemas import SuggestionResponse
 from pipeline.candidate_gen import generate_candidates
@@ -8,18 +10,29 @@ from pipeline.fusion import fuse_modalities
 from pipeline.scoring import score_candidates
 from pipeline.speech import process_audio
 from pipeline.vision import process_image
+from services import quota_service
+from services.auth_service import AuthUser
 
 router = APIRouter()
 
 
 @router.post("/query/suggestions", response_model=SuggestionResponse)
 async def query_suggestions(
+    request: Request,
+    user: AuthUser | None = Depends(current_user),
+    subject: str = Depends(client_subject),
     image: UploadFile | None = File(default=None),
     audio: UploadFile | None = File(default=None),
     text: str | None = Form(default=None),
 ) -> SuggestionResponse:
     if image is None and audio is None and not (text and text.strip()):
         raise NoInputError("At least one input (image, audio, or text) is required.")
+
+    quota = quota_service.check_and_consume(
+        subject,
+        None if user is not None else settings.anonymous_free_queries,
+        authenticated=user is not None,
+    )
 
     image_description = None
     voice_transcript = None
@@ -44,4 +57,4 @@ async def query_suggestions(
         raise ScoringFailedError("No candidate queries met the relevance threshold.")
 
     suggestions = select_diverse(candidates)
-    return SuggestionResponse(success=True, suggestions=suggestions, context=context)
+    return SuggestionResponse(success=True, suggestions=suggestions, context=context, quota=quota)
