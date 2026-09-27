@@ -1,0 +1,159 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-surface font-sans text-body-md text-on-surface antialiased;
+  }
+
+  ::selection {
+    @apply bg-primary/15;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    @apply outline-none ring-2 ring-primary/40 ring-offset-1 ring-offset-surface;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full border-[2px] border-solid border-transparent bg-on-surface/10 bg-clip-content;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-on-surface/20 bg-clip-content;
+  }
+}
+
+@layer components {
+  /* ─── Wordmark ─────────────────────────────────────── */
+  .wordmark {
+    @apply font-sans text-[1.25rem] font-semibold leading-none tracking-[-0.02em] text-on-surface;
+  }
+
+  /* ─── Buttons ──────────────────────────────────────── */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-1.5 text-label-technical font-medium transition-all duration-150 disabled:pointer-events-none disabled:opacity-40;
+  }
+
+  .btn-primary {
+    @apply rounded bg-primary px-space-sm py-1.5 text-on-primary hover:bg-clay-deep active:scale-[0.99];
+  }
+
+  .btn-secondary {
+    @apply rounded border border-outline-variant bg-surface-lowest px-space-sm py-1.5 text-on-surface hover:border-outline hover:bg-surface-low;
+  }
+
+  .btn-ghost {
+    @apply rounded px-2.5 py-1.5 text-on-surface-variant hover:bg-surface-high hover:text-on-surface;
+  }
+
+  .btn-technical {
+    @apply rounded bg-transparent px-space-xs py-1 font-mono text-label-code-sm uppercase tracking-wider text-on-surface-variant hover:bg-surface-low hover:text-on-surface;
+  }
+
+  /* ─── Fields / Inputs ──────────────────────────────── */
+  .field {
+    @apply w-full rounded border border-outline-variant bg-surface-lowest px-3 py-2 text-body-md text-on-surface transition-colors placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none;
+  }
+
+  /* ─── Knowledge Cards ───────────────────────────────── */
+  .card {
+    @apply rounded-lg border border-outline-variant bg-surface-lowest shadow-card transition-all;
+  }
+
+  .card:hover {
+    @apply border-outline shadow-card-hover;
+  }
+
+  /* ─── Semantic Facet Chips ──────────────────────────── */
+  .chip {
+    @apply inline-flex h-[26px] items-center gap-1 rounded-full border border-outline-variant bg-surface-low px-2.5 font-mono text-label-code-sm text-on-surface hover:bg-surface-container;
+  }
+
+  .chip-active {
+    @apply border-primary bg-primary text-on-primary;
+  }
+
+  /* ─── Reference Index Pill ──────────────────────────── */
+  .pill {
+    @apply inline-flex items-center rounded border border-outline-variant px-space-xs py-0.5 font-mono text-label-code-sm tabular-nums text-on-surface-variant;
+  }
+
+  /* ─── Technical Label ───────────────────────────────── */
+  .label-tech {
+    @apply font-mono text-label-technical uppercase tracking-wider text-on-surface-variant;
+  }
+
+  /* ─── Syntax Operator Tag ───────────────────────────── */
+  .op-tag {
+    @apply inline-flex items-center rounded bg-surface-high px-space-xs py-0.5 font-mono text-label-code-sm text-on-surface;
+  }
+
+  /* ─── Stage Tab Button ──────────────────────────────── */
+  .stage-tab {
+    @apply rounded px-space-sm py-1 font-mono text-label-technical text-on-surface-variant transition-all hover:text-on-surface;
+  }
+
+  .stage-tab-active {
+    @apply bg-primary-container text-on-primary;
+  }
+
+  /* ─── Progress / Confidence Bar ─────────────────────── */
+  .progress-bar {
+    @apply h-0.5 w-full overflow-hidden rounded-full bg-surface-high;
+  }
+
+  /* ─── Investigation Nav Item ────────────────────────── */
+  .inv-item {
+    @apply block rounded-md p-space-sm transition-all;
+  }
+
+  .inv-item-active {
+    @apply bg-surface-high text-on-surface;
+  }
+
+  .inv-item-rest {
+    @apply bg-surface-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface;
+  }
+
+  /* ─── Result Article ────────────────────────────────── */
+  .result-article {
+    @apply rounded-lg border border-outline-variant bg-surface-lowest p-space-md shadow-card transition-all hover:border-outline hover:shadow-card-hover;
+  }
+
+  /* ─── Prose body ────────────────────────────────────── */
+  .prose-body {
+    @apply text-body-md leading-relaxed text-on-surface;
+  }
+}
+
+/* ─── Reduced motion ─────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
