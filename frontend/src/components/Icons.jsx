@@ -1,16 +1,22 @@
-// Questra brand mark — compass-rose precision instrument motif (from Stitch design system)
+// Questra brand mark — compass-rose precision instrument motif
 export function Brand({ className = 'h-5 w-5' }) {
   return (
     <svg className={className} viewBox="0 0 120 120" fill="none" aria-hidden="true">
-      <rect width="120" height="120" rx="28" fill="#18181B" />
-      <circle cx="60" cy="60" r="32" stroke="#FAF8F5" strokeWidth="4" strokeDasharray="2 6" />
-      <circle cx="60" cy="60" r="18" stroke="#3B82F6" strokeWidth="3.5" />
-      <polygon points="60,26 66,48 60,42 54,48" fill="#3B82F6" />
-      <polygon points="60,94 66,72 60,78 54,72" fill="#71717A" />
-      <polygon points="26,60 48,54 42,60 48,66" fill="#71717A" />
-      <polygon points="94,60 72,54 78,60 72,66" fill="#3B82F6" />
-      <circle cx="60" cy="60" r="4.5" fill="#FAF8F5" />
-      <path d="M74 74 L90 90" stroke="#3B82F6" strokeWidth="4.5" strokeLinecap="round" />
+      <defs>
+        <linearGradient id="questra-mark" x1="10" y1="8" x2="110" y2="112" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#8b6bff" />
+          <stop offset="1" stopColor="#5b34e8" />
+        </linearGradient>
+      </defs>
+      <rect width="120" height="120" rx="30" fill="url(#questra-mark)" />
+      <circle cx="60" cy="60" r="32" stroke="#f3eeff" strokeWidth="3.5" strokeDasharray="2 6" opacity="0.85" />
+      <circle cx="60" cy="60" r="18" stroke="#f3eeff" strokeWidth="3" opacity="0.95" />
+      <polygon points="60,26 66,48 60,42 54,48" fill="#f5b544" />
+      <polygon points="60,94 66,72 60,78 54,72" fill="#c9bcff" opacity="0.65" />
+      <polygon points="26,60 48,54 42,60 48,66" fill="#c9bcff" opacity="0.65" />
+      <polygon points="94,60 72,54 78,60 72,66" fill="#f5b544" />
+      <circle cx="60" cy="60" r="4.5" fill="#ffffff" />
+      <path d="M74 74 L90 90" stroke="#f5b544" strokeWidth="4.5" strokeLinecap="round" />
     </svg>
   )
 }

@@ -295,7 +295,7 @@ export default function App() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-outline-variant bg-surface/80 px-space-md py-2.5 backdrop-blur-md">
+        <header className="glass flex items-center justify-between border-b border-outline-variant px-space-md py-2.5">
           <div className="flex items-center gap-space-sm">
             <button type="button" className="btn-icon md:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
               <Menu />
@@ -328,11 +328,12 @@ export default function App() {
 
         {isEmpty ? (
           <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto px-space-md py-10">
-            <div className="grid-fade pointer-events-none absolute inset-x-0 top-0 h-72" aria-hidden="true" />
+            <div className="aurora pointer-events-none absolute inset-x-0 top-0 h-[72%] animate-drift" aria-hidden="true" />
+            <div className="grid-fade pointer-events-none absolute inset-x-0 top-0 h-80" aria-hidden="true" />
             <div className="relative w-full max-w-2xl animate-fade-up">
               <div className="pb-space-lg text-center">
-                <div className="mx-auto mb-space-md flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-card">
-                  <Brand className="h-8 w-8" />
+                <div className="mx-auto mb-space-md flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-glow">
+                  <Brand className="h-9 w-9" />
                 </div>
                 <h1 className="font-display text-display-hero text-on-surface">
                   Find it by describing it
@@ -384,7 +385,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="border-t border-outline-variant bg-surface/85 px-space-md py-space-sm backdrop-blur-md">
+            <div className="glass border-t border-outline-variant px-space-md py-space-sm">
               <div className="mx-auto w-full max-w-3xl">
                 {error && <p className="pb-space-xs text-body-sm text-error">{error}</p>}
                 <Composer onSubmit={handleSubmit} onError={setError} disabled={busy} />
