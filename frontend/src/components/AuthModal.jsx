@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Close, Lock, Mail, Sparkle } from './Icons'
 
@@ -8,7 +8,7 @@ function Field({ icon, ...props }) {
       <span className="text-on-surface-variant">{icon}</span>
       <input
         {...props}
-        className="w-full bg-transparent text-body-md text-on-surface outline-none placeholder:text-on-surface-variant/50"
+        className="w-full bg-transparent text-[16px] text-on-surface outline-none placeholder:text-on-surface-variant/50 sm:text-body-md"
       />
     </label>
   )
@@ -22,6 +22,7 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
   const [token, setToken] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const panelRef = useRef(null)
 
   useEffect(() => {
     if (!open) return undefined
@@ -29,8 +30,28 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
     setToken('')
     setError(null)
     setBusy(false)
+    const panel = panelRef.current
+    const firstField = panel?.querySelector('input')
+    ;(firstField || panel)?.focus()
     const onKey = (event) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab' || !panel) return
+      const focusable = panel.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -81,7 +102,14 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-inverse-surface/40 backdrop-blur-sm"
       />
-      <div className="relative w-full max-w-md animate-scale-in overflow-hidden rounded-2xl border border-outline-variant bg-surface-lowest shadow-pop">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
+        className="relative w-full max-w-md animate-scale-in overflow-hidden rounded-2xl border border-outline-variant bg-surface-lowest shadow-pop focus:outline-none"
+      >
         <div className="aura h-24 relative">
           <button type="button" onClick={onClose} aria-label="Close" className="btn-icon absolute right-3 top-3">
             <Close />
@@ -119,6 +147,7 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
                 icon={<Mail />}
                 type="email"
                 required
+                aria-label="Email address"
                 autoComplete="email"
                 placeholder="you@example.com"
                 value={email}
@@ -129,6 +158,7 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
                 type="password"
                 required
                 minLength={6}
+                aria-label="Password"
                 autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                 placeholder="Password (6+ characters)"
                 value={password}
@@ -160,6 +190,7 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
                   maxLength={6}
                   required
                   autoFocus
+                  aria-label="Verification code"
                   value={token}
                   onChange={(event) => setToken(event.target.value.replace(/\D/g, ''))}
                   placeholder="••••••"

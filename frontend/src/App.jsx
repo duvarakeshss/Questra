@@ -331,7 +331,7 @@ export default function App() {
               }}
               onSignOut={handleSignOut}
             />
-            <button type="button" onClick={handleNewSearch} className="btn btn-primary py-2">
+            <button type="button" onClick={handleNewSearch} className="btn btn-primary whitespace-nowrap py-2">
               New search
             </button>
           </div>
@@ -339,19 +339,15 @@ export default function App() {
 
         {isEmpty ? (
           <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto px-space-md py-10">
-            <div className="aurora pointer-events-none absolute inset-x-0 top-0 h-[72%] animate-drift" aria-hidden="true" />
             <div className="grid-fade pointer-events-none absolute inset-x-0 top-0 h-80" aria-hidden="true" />
             <div className="relative w-full max-w-2xl animate-fade-up">
               <div className="pb-space-lg text-center">
-                <div className="mx-auto mb-space-md flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-glow">
-                  <Brand className="h-9 w-9" />
-                </div>
                 <h1 className="font-display text-display-hero text-on-surface">
                   Find it by describing it
                 </h1>
                 <p className="mx-auto mt-space-sm max-w-lg text-body-lg text-on-surface-variant">
                   Questra turns a photo, a voice note, or a few loose words into clear search queries you can
-                  review and refine — or send your words straight to results.
+                  review and refine, or send your words straight to results.
                 </p>
               </div>
 

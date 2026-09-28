@@ -8,6 +8,7 @@ export default function QueryEditor({ initialQuery, onConfirm, onCancel }) {
       <input
         value={value}
         autoFocus
+        aria-label="Search query"
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === 'Enter' && value.trim()) onConfirm(value.trim())

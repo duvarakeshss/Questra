@@ -15,16 +15,18 @@ export default function QuotaBadge({ quota, authenticated, onSignIn }) {
     typeof remaining === 'number'
       ? `${remaining} free ${remaining === 1 ? 'query' : 'queries'} left`
       : 'Free preview'
+  const shortLabel = typeof remaining === 'number' ? `${remaining} left` : 'Free'
 
   return (
     <button
       type="button"
       onClick={onSignIn}
-      className="chip hover:border-primary hover:text-primary"
+      className="chip whitespace-nowrap hover:border-primary hover:text-primary"
       title="Sign in for unlimited searches"
     >
       <User className="h-3.5 w-3.5" />
-      <span>{label}</span>
+      <span className="sm:hidden">{shortLabel}</span>
+      <span className="hidden sm:inline">{label}</span>
     </button>
   )
 }

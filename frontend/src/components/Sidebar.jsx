@@ -102,12 +102,12 @@ export default function Sidebar({
           {groups.length === 0 ? (
             <div className="px-space-sm py-6 text-center">
               <p className="text-body-sm text-on-surface-variant">No searches yet.</p>
-              <p className="mt-0.5 text-body-sm text-on-surface-variant/70">Your history will appear here.</p>
+              <p className="mt-0.5 text-body-sm text-on-surface-variant">Your history will appear here.</p>
             </div>
           ) : (
             groups.map((group) => (
               <div key={group.label} className="mb-space-md">
-                <p className="px-2 pb-1.5 text-caption text-on-surface-variant/80">{group.label}</p>
+                <p className="px-2 pb-1.5 text-caption text-on-surface-variant">{group.label}</p>
                 <ul className="space-y-1">
                   {group.items.map((conversation) => {
                     const isActive = conversation.id === activeId
@@ -125,7 +125,7 @@ export default function Sidebar({
                           }`}
                         >
                           <p className="truncate text-body-sm font-medium">{conversation.title}</p>
-                          <p className="mt-0.5 truncate text-caption text-on-surface-variant/80">
+                          <p className="mt-0.5 truncate text-caption text-on-surface-variant">
                             {meta(conversation)}
                           </p>
                         </button>
@@ -137,7 +137,7 @@ export default function Sidebar({
                               event.stopPropagation()
                               requestDelete(conversation)
                             }}
-                            className="absolute right-1.5 top-1.5 rounded-md p-1.5 text-on-surface-variant opacity-0 transition-opacity hover:bg-black/[0.06] hover:text-error focus-visible:opacity-100 group-hover:opacity-100"
+                            className="absolute right-1.5 top-1.5 rounded-md p-1.5 text-on-surface-variant opacity-0 transition-opacity hover:bg-black/[0.06] hover:text-error focus-visible:opacity-100 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100"
                             aria-label={`Delete search: ${conversation.title}`}
                             title="Delete search"
                           >

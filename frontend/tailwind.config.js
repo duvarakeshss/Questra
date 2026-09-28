@@ -33,8 +33,8 @@ export default {
         'on-primary-fixed': '#592a18',
         'on-primary-fixed-variant': '#b8512f',
         'clay': {
-          DEFAULT: '#d97757',
-          deep: '#c15f3c',
+          DEFAULT: '#b8512f',
+          deep: '#9c4425',
         },
 
         // Signal — warm amber, reserved for scores and confidence

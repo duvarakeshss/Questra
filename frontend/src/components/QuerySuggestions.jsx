@@ -130,12 +130,13 @@ export default function QuerySuggestions({ suggestions, context, onSelect, onReg
       <div className="flex items-center gap-2 rounded-xl border border-outline-variant bg-surface-lowest p-2">
         <input
           value={custom}
+          aria-label="Your own search query"
           onChange={(event) => setCustom(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') submitCustom()
           }}
           placeholder="Or type your own query"
-          className="min-w-0 flex-1 bg-transparent px-2 text-body-md text-on-surface outline-none placeholder:text-on-surface-variant/50"
+          className="min-w-0 flex-1 bg-transparent px-2 text-[16px] text-on-surface outline-none placeholder:text-on-surface-variant/50 sm:text-body-md"
         />
         <button type="button" onClick={submitCustom} disabled={!custom.trim()} className="btn btn-secondary shrink-0">
           <Search className="h-4 w-4" />
