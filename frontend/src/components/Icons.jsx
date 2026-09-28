@@ -4,8 +4,8 @@ export function Brand({ className = 'h-5 w-5' }) {
     <svg className={className} viewBox="0 0 120 120" fill="none" aria-hidden="true">
       <defs>
         <linearGradient id="questra-mark" x1="10" y1="8" x2="110" y2="112" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#e79274" />
-          <stop offset="1" stopColor="#c15f3c" />
+          <stop stopColor="#d97a56" />
+          <stop offset="1" stopColor="#a94c2b" />
         </linearGradient>
       </defs>
       <rect width="120" height="120" rx="30" fill="url(#questra-mark)" />

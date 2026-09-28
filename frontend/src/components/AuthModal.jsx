@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { Close, Lock, Mail, Sparkle } from './Icons'
+import { Close, Lock, Mail } from './Icons'
 
 function Field({ icon, ...props }) {
   return (
-    <label className="flex items-center gap-2.5 rounded-lg border border-outline-variant bg-surface-lowest px-3.5 py-2.5 transition-colors focus-within:border-primary">
+    <label className="flex items-center gap-2.5 rounded border border-outline bg-surface-lowest px-3.5 py-2.5 transition-colors focus-within:border-ink">
       <span className="text-on-surface-variant">{icon}</span>
       <input
         {...props}
-        className="w-full bg-transparent text-[16px] text-on-surface outline-none placeholder:text-on-surface-variant/50 sm:text-body-md"
+        className="w-full bg-transparent text-[16px] text-on-surface outline-none placeholder:text-on-surface-variant/60 sm:text-body-md"
       />
     </label>
   )
@@ -100,7 +100,7 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-inverse-surface/40 backdrop-blur-sm"
+        className="absolute inset-0 cursor-default bg-inverse-surface/30"
       />
       <div
         ref={panelRef}
@@ -108,35 +108,32 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="relative w-full max-w-md animate-scale-in overflow-hidden rounded-2xl border border-outline-variant bg-surface-lowest shadow-pop focus:outline-none"
+        className="relative w-full max-w-md overflow-hidden rounded border border-outline bg-surface-lowest shadow-pop focus:outline-none"
       >
-        <div className="aura h-24 relative">
-          <button type="button" onClick={onClose} aria-label="Close" className="btn-icon absolute right-3 top-3">
+        <div className="flex items-center justify-between border-b border-outline-variant px-6 py-3">
+          <span className="eyebrow">Questra account</span>
+          <button type="button" onClick={onClose} aria-label="Close" className="btn-icon">
             <Close />
           </button>
         </div>
 
-        <div className="-mt-10 px-space-lg pb-space-lg">
-          <div className="mb-space-md flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-on-primary shadow-card">
-            <Sparkle className="h-6 w-6" />
-          </div>
-
+        <div className="px-6 py-6">
           <h2 className="font-display text-headline-md text-on-surface">{title}</h2>
-          <p className="pt-1 text-body-sm text-on-surface-variant">
+          <p className="pt-1.5 text-body-sm leading-relaxed text-on-surface-variant">
             {step === 'otp'
               ? `We sent a 6-digit code to ${email}. Enter it below to verify your account.`
               : message || 'Sign in to run unlimited searches. Your free queries are always saved first.'}
           </p>
 
           {!auth.configured && (
-            <p className="mt-space-md rounded-lg border border-outline-variant bg-surface-low px-3 py-2 text-body-sm text-on-surface-variant">
-              Auth isn&apos;t configured yet — add <code className="font-mono text-label-code-sm">VITE_SUPABASE_URL</code> and{' '}
+            <p className="mt-space-md rounded border border-outline bg-surface-low px-3 py-2 text-body-sm text-on-surface-variant">
+              Auth isn&apos;t configured yet. Add <code className="font-mono text-label-code-sm">VITE_SUPABASE_URL</code> and{' '}
               <code className="font-mono text-label-code-sm">VITE_SUPABASE_ANON_KEY</code> to enable it.
             </p>
           )}
 
           {error && (
-            <p className="mt-space-md rounded-lg border border-error/25 bg-error-container/40 px-3 py-2 text-body-sm text-on-error-container">
+            <p className="mt-space-md rounded border-l-2 border-error bg-error-container/50 px-3 py-2 text-body-sm text-on-error-container">
               {error}
             </p>
           )}
@@ -194,7 +191,7 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
                   value={token}
                   onChange={(event) => setToken(event.target.value.replace(/\D/g, ''))}
                   placeholder="••••••"
-                  className="w-full rounded-lg border border-outline-variant bg-surface-lowest py-3 text-center font-mono text-[22px] tracking-[0.5em] text-on-surface outline-none focus:border-primary"
+                  className="w-full rounded border border-outline bg-surface-lowest py-3 text-center font-mono text-[22px] tracking-[0.5em] text-on-surface outline-none focus:border-ink"
                 />
               </label>
               <button type="submit" className="btn btn-primary w-full" disabled={busy || token.length < 6}>

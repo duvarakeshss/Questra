@@ -19,6 +19,12 @@ const EXAMPLES = [
   'Explain this chart to me in plain words',
 ]
 
+const READS = [
+  ['Image', 'Objects, setting, and style in a photo'],
+  ['Voice', 'What you said, transcribed cleanly'],
+  ['Notes', 'The intent behind your few words'],
+]
+
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 
 function createConversation() {
@@ -284,7 +290,7 @@ export default function App() {
   }
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-transparent">
+    <div className="flex h-screen overflow-hidden bg-surface">
       <Sidebar
         conversations={conversations.filter((conversation) => conversation.messages.length > 0)}
         activeId={active.id}
@@ -306,18 +312,16 @@ export default function App() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="glass flex items-center justify-between border-b border-outline-variant px-space-md py-2.5">
-          <div className="flex items-center gap-space-sm">
+        <header className="flex items-center justify-between gap-space-md border-b border-outline-variant px-space-md py-2.5">
+          <div className="flex min-w-0 items-center gap-space-sm">
             <button type="button" className="btn-icon md:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
               <Menu />
             </button>
             <div className="flex items-center gap-2 md:hidden">
-              <Brand className="h-7 w-7" />
-              <span className="font-display text-[15px] font-semibold tracking-tight text-on-surface">Questra</span>
+              <Brand className="h-6 w-6" />
+              <span className="wordmark">Questra</span>
             </div>
-            <p className="hidden text-body-sm text-on-surface-variant md:block">
-              Describe it in words, show a picture, or say it out loud.
-            </p>
+            <p className="eyebrow hidden truncate md:block">Describe it · photograph it · say it</p>
           </div>
 
           <div className="flex items-center gap-space-sm">
@@ -338,44 +342,76 @@ export default function App() {
         </header>
 
         {isEmpty ? (
-          <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto px-space-md py-10">
-            <div className="grid-fade pointer-events-none absolute inset-x-0 top-0 h-80" aria-hidden="true" />
-            <div className="relative w-full max-w-2xl animate-fade-up">
-              <div className="pb-space-lg text-center">
-                <h1 className="font-display text-display-hero text-on-surface">
+          <div className="flex-1 overflow-y-auto">
+            <div className="mx-auto grid w-full max-w-6xl gap-space-xl px-space-md py-12 md:grid-cols-12 md:px-space-lg">
+              <div className="md:col-span-7 md:pr-space-lg">
+                <p className="eyebrow">Multimodal query discovery</p>
+                <h1 className="mt-space-sm font-display text-display-hero text-on-surface">
                   Find it by describing it
                 </h1>
-                <p className="mx-auto mt-space-sm max-w-lg text-body-lg text-on-surface-variant">
+                <p className="mt-space-md max-w-xl text-body-lg text-on-surface-variant">
                   Questra turns a photo, a voice note, or a few loose words into clear search queries you can
-                  review and refine, or send your words straight to results.
+                  review and refine, or send straight to results.
                 </p>
+
+                {error && <p className="mt-space-md text-body-sm text-error">{error}</p>}
+
+                <div className="mt-space-lg">
+                  <Composer onSubmit={handleSubmit} onSearch={handleSelectQuery} onError={setError} disabled={busy} autoFocus />
+                </div>
+
+                <div className="mt-space-xl">
+                  <p className="eyebrow">Try one</p>
+                  <ol className="mt-space-sm border-t border-outline-variant">
+                    {EXAMPLES.map((example, index) => (
+                      <li key={example} className="border-b border-outline-variant">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => handleSubmit({ text: example })}
+                          className="group flex w-full items-baseline gap-space-md py-3 text-left"
+                        >
+                          <span className="font-mono text-label-code-sm text-on-surface-variant">
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
+                          <span className="flex-1 text-body-md text-on-surface transition-colors group-hover:text-primary">
+                            {example}
+                          </span>
+                          <span className="font-mono text-label-code-sm text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                            Use
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               </div>
 
-              {error && (
-                <p className="pb-space-sm text-center text-body-sm text-error">{error}</p>
-              )}
-
-              <Composer onSubmit={handleSubmit} onSearch={handleSelectQuery} onError={setError} disabled={busy} autoFocus />
-
-              <div className="mt-space-md flex flex-wrap justify-center gap-2">
-                {EXAMPLES.map((example) => (
-                  <button
-                    key={example}
-                    type="button"
-                    className="chip"
-                    disabled={busy}
-                    onClick={() => handleSubmit({ text: example })}
-                  >
-                    {example}
-                  </button>
-                ))}
-              </div>
+              <aside className="md:col-span-5">
+                <div className="border-t border-outline-variant pt-space-md">
+                  <p className="eyebrow">What it reads</p>
+                  <dl className="mt-space-sm">
+                    {READS.map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="grid grid-cols-[4.5rem_1fr] gap-space-md border-b border-outline-variant py-3"
+                      >
+                        <dt className="font-mono text-label-code-sm uppercase text-on-surface-variant">{label}</dt>
+                        <dd className="text-body-sm text-on-surface">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p className="mt-space-md text-body-sm leading-relaxed text-on-surface-variant">
+                    All three are fused into scored, diverse query ideas before a single search runs.
+                  </p>
+                </div>
+              </aside>
             </div>
           </div>
         ) : (
           <>
             <div ref={scrollRef} className="flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-3xl space-y-space-xl px-space-md py-space-xl md:px-space-lg">
+              <div className="mx-auto w-full max-w-3xl px-space-md py-space-lg md:px-space-lg">
                 {active.messages.map((message) => (
                   <ChatMessage
                     key={message.id}
@@ -392,12 +428,12 @@ export default function App() {
               </div>
             </div>
 
-            <div className="px-space-md py-space-sm">
+            <div className="border-t border-outline-variant px-space-md py-space-sm">
               <div className="mx-auto w-full max-w-3xl">
                 {error && <p className="pb-space-xs text-body-sm text-error">{error}</p>}
                 <Composer onSubmit={handleSubmit} onSearch={handleSelectQuery} onError={setError} disabled={busy} />
-                <p className="pt-space-xs text-center text-caption text-on-surface-variant">
-                  Press Enter to draft query ideas, or Search now to run your words straight away.
+                <p className="pt-space-xs text-center font-mono text-caption text-on-surface-variant">
+                  Enter drafts query ideas · Search now runs your words directly
                 </p>
               </div>
             </div>

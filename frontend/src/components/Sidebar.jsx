@@ -70,20 +70,20 @@ export default function Sidebar({
     <>
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-inverse-surface/40 backdrop-blur-[2px] md:hidden"
+          className="fixed inset-0 z-30 bg-inverse-surface/30 md:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
       <aside
-        className={`glass fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-outline-variant transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-outline-variant bg-surface transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between px-space-md py-space-md">
+        <div className="flex items-center justify-between border-b border-outline-variant px-space-md py-space-md">
           <div className="flex items-center gap-2.5">
-            <Brand className="h-8 w-8" />
+            <Brand className="h-7 w-7" />
             <span className="wordmark">Questra</span>
           </div>
           <button type="button" className="btn-icon md:hidden" onClick={onClose} aria-label="Close menu">
@@ -91,7 +91,7 @@ export default function Sidebar({
           </button>
         </div>
 
-        <div className="px-space-sm pb-space-sm">
+        <div className="px-space-sm py-space-sm">
           <button type="button" className="btn btn-primary w-full" onClick={onNew}>
             <Plus className="h-4 w-4" />
             New search
@@ -99,16 +99,19 @@ export default function Sidebar({
         </div>
 
         <nav className="min-h-0 flex-1 overflow-y-auto px-space-sm pb-space-md">
+          <p className="px-2 pb-2 pt-space-sm eyebrow">History</p>
           {groups.length === 0 ? (
-            <div className="px-space-sm py-6 text-center">
+            <div className="px-2 py-4">
               <p className="text-body-sm text-on-surface-variant">No searches yet.</p>
-              <p className="mt-0.5 text-body-sm text-on-surface-variant">Your history will appear here.</p>
+              <p className="mt-0.5 text-body-sm text-on-surface-variant/80">Your history will appear here.</p>
             </div>
           ) : (
             groups.map((group) => (
               <div key={group.label} className="mb-space-md">
-                <p className="px-2 pb-1.5 text-caption text-on-surface-variant">{group.label}</p>
-                <ul className="space-y-1">
+                <p className="px-2 pb-1.5 font-mono text-label-code-sm uppercase text-on-surface-variant">
+                  {group.label}
+                </p>
+                <ul className="space-y-0.5">
                   {group.items.map((conversation) => {
                     const isActive = conversation.id === activeId
                     const isConfirming = confirmId === conversation.id
@@ -118,14 +121,14 @@ export default function Sidebar({
                           type="button"
                           onClick={() => onSelect(conversation.id)}
                           title={conversation.title}
-                          className={`w-full rounded-lg px-3 py-2 pr-10 text-left transition-colors ${
+                          className={`relative w-full rounded border-l-2 py-2 pl-3 pr-10 text-left transition-colors ${
                             isActive
-                              ? 'bg-primary/12 text-on-surface'
-                              : 'text-on-surface-variant hover:bg-black/[0.04] hover:text-on-surface'
+                              ? 'border-primary bg-surface-container text-on-surface'
+                              : 'border-transparent text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface'
                           }`}
                         >
                           <p className="truncate text-body-sm font-medium">{conversation.title}</p>
-                          <p className="mt-0.5 truncate text-caption text-on-surface-variant">
+                          <p className="mt-0.5 truncate font-mono text-label-code-sm text-on-surface-variant">
                             {meta(conversation)}
                           </p>
                         </button>
@@ -137,7 +140,7 @@ export default function Sidebar({
                               event.stopPropagation()
                               requestDelete(conversation)
                             }}
-                            className="absolute right-1.5 top-1.5 rounded-md p-1.5 text-on-surface-variant opacity-0 transition-opacity hover:bg-black/[0.06] hover:text-error focus-visible:opacity-100 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100"
+                            className="absolute right-1.5 top-1.5 rounded p-1.5 text-on-surface-variant opacity-0 transition-opacity hover:bg-surface-high hover:text-error focus-visible:opacity-100 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100"
                             aria-label={`Delete search: ${conversation.title}`}
                             title="Delete search"
                           >
@@ -146,7 +149,7 @@ export default function Sidebar({
                         )}
 
                         {isConfirming && (
-                          <div className="absolute inset-0 z-10 flex items-center justify-between gap-2 rounded-lg bg-surface-container/95 px-3 backdrop-blur-sm">
+                          <div className="absolute inset-0 z-10 flex items-center justify-between gap-2 rounded border border-outline bg-surface-lowest px-3">
                             <span className="text-body-sm text-on-surface">Delete this search?</span>
                             <div className="flex items-center gap-1">
                               <button
@@ -155,14 +158,14 @@ export default function Sidebar({
                                   setConfirmId(null)
                                   onDelete(conversation.id)
                                 }}
-                                className="rounded-md bg-error px-2 py-1 text-caption font-semibold text-on-error"
+                                className="rounded-sm bg-error px-2 py-1 font-mono text-label-code-sm font-semibold text-on-error"
                               >
                                 Delete
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setConfirmId(null)}
-                                className="rounded-md px-2 py-1 text-caption text-on-surface-variant hover:bg-black/[0.06] hover:text-on-surface"
+                                className="rounded-sm px-2 py-1 font-mono text-label-code-sm text-on-surface-variant hover:bg-surface-high hover:text-on-surface"
                               >
                                 Cancel
                               </button>
@@ -180,13 +183,13 @@ export default function Sidebar({
 
         <div className="border-t border-outline-variant p-space-sm">
           {account?.authenticated ? (
-            <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-body-sm font-semibold text-on-primary">
+            <div className="flex items-center gap-2.5 px-1 py-1.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-ink font-mono text-body-sm font-semibold text-surface">
                 {(account.email || 'you').slice(0, 1).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-body-sm font-medium text-on-surface">{account.email}</p>
-                <p className="text-caption text-on-surface-variant">Unlimited searches</p>
+                <p className="font-mono text-label-code-sm uppercase text-on-surface-variant">Unlimited</p>
               </div>
               <button type="button" className="btn-icon" onClick={onSignOut} aria-label="Sign out" title="Sign out">
                 <LogOut className="h-4 w-4" />

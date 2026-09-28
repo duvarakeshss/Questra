@@ -186,12 +186,12 @@ export default function Composer({ onSubmit, onSearch, onError, disabled = false
   const hasAttachment = Boolean(image || audio)
 
   return (
-    <div className="rounded-2xl border border-primary bg-transparent transition-colors focus-within:ring-2 focus-within:ring-primary/25">
+    <div className="rounded border border-primary bg-transparent transition-colors focus-within:border-ink">
       {hasAttachment && (
         <div className="flex flex-wrap gap-2 border-b border-outline-variant/70 px-3 pt-3">
           {image && (
-            <div className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-low py-1 pl-1 pr-2">
-              <img src={imageUrl} alt="" className="h-7 w-7 rounded object-cover" />
+            <div className="inline-flex items-center gap-2 rounded-sm border border-outline-variant bg-surface-low py-1 pl-1 pr-2">
+              <img src={imageUrl} alt="" className="h-7 w-7 rounded-sm object-cover" />
               <span className="max-w-[12rem] truncate text-body-sm text-on-surface">{image.name}</span>
               <button type="button" onClick={() => setImage(null)} className="text-on-surface-variant hover:text-error" aria-label="Remove image">
                 <Close className="h-3.5 w-3.5" />
@@ -199,7 +199,7 @@ export default function Composer({ onSubmit, onSearch, onError, disabled = false
             </div>
           )}
           {audio && (
-            <div className="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft py-1 pl-2 pr-2">
+            <div className="inline-flex items-center gap-2 rounded-sm border border-accent/40 bg-accent-soft py-1 pl-2 pr-2">
               <Mic className="h-3.5 w-3.5 text-accent-ink" />
               <span className="max-w-[12rem] truncate text-body-sm text-accent-ink">{audio.name}</span>
               <button type="button" onClick={() => setAudio(null)} className="text-accent-ink/70 hover:text-error" aria-label="Remove audio">
@@ -258,8 +258,8 @@ export default function Composer({ onSubmit, onSearch, onError, disabled = false
 
         <div className="flex items-center gap-2">
           {hasContent && (
-            <span className="hidden text-caption text-on-surface-variant sm:inline">
-              {text.trim() ? 'Enter for ideas' : 'Enter to continue'}
+            <span className="hidden font-mono text-label-code-sm text-on-surface-variant sm:inline">
+              {text.trim() ? 'enter = ideas' : 'enter'}
             </span>
           )}
           {text.trim() && (
@@ -267,7 +267,7 @@ export default function Composer({ onSubmit, onSearch, onError, disabled = false
               type="button"
               onClick={searchNow}
               disabled={disabled}
-              className="btn btn-secondary gap-1.5 rounded-full py-2"
+              className="btn btn-secondary gap-1.5 rounded-sm py-2"
               title="Search your text directly, skipping suggested queries"
             >
               <Search className="h-4 w-4" />
@@ -278,7 +278,7 @@ export default function Composer({ onSubmit, onSearch, onError, disabled = false
             type="button"
             onClick={submit}
             disabled={!hasContent || disabled}
-            className="btn btn-primary rounded-full px-3 py-2"
+            className="btn btn-primary rounded-sm px-3 py-2"
             aria-label="Suggest queries"
             title="Draft query ideas from your input"
           >

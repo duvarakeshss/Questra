@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Questra">
   <defs>
     <linearGradient id="questra-favicon" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#e79274" />
-      <stop offset="1" stop-color="#c15f3c" />
+      <stop stop-color="#d97a56" />
+      <stop offset="1" stop-color="#a94c2b" />
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="16" fill="url(#questra-favicon)" />
+  <rect width="64" height="64" rx="12" fill="url(#questra-favicon)" />
   <circle cx="32" cy="32" r="17" fill="none" stroke="#fff3ec" stroke-width="3.5" stroke-dasharray="2 6" opacity="0.85" />
   <path d="M32 15 L36.5 30.5 L32 28 L27.5 30.5 Z" fill="#fff3ec" />
   <path d="M32 49 L36.5 33.5 L32 36 L27.5 33.5 Z" fill="#f8d3c2" opacity="0.8" />

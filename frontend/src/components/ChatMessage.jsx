@@ -1,23 +1,22 @@
-import { Alert, Brand, Lock } from './Icons'
+import { Alert, Lock } from './Icons'
 import LoadingSpinner from './LoadingSpinner'
 import QuerySuggestions from './QuerySuggestions'
 import SearchResults from './SearchResults'
 
 function AssistantTurn({ children }) {
   return (
-    <div className="flex animate-fade-up gap-space-sm">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary shadow-xs">
-        <Brand className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1 space-y-space-sm pt-0.5">{children}</div>
-    </div>
+    <section className="animate-fade-up border-t border-outline-variant pt-space-md">
+      <p className="eyebrow mb-space-sm">Questra</p>
+      <div className="min-w-0">{children}</div>
+    </section>
   )
 }
 
 function UserTurn({ children }) {
   return (
-    <div className="flex animate-fade-up justify-end">
-      <div className="max-w-[85%] space-y-space-sm rounded-2xl rounded-br-md border border-outline-variant bg-surface-low px-4 py-3 text-body-md leading-relaxed text-on-surface">
+    <div className="flex animate-fade-up justify-end pt-space-lg">
+      <div className="max-w-[85%] space-y-space-sm rounded border border-outline bg-surface-lowest px-4 py-3 text-body-md leading-relaxed text-on-surface">
+        <p className="eyebrow">You</p>
         {children}
       </div>
     </div>
@@ -32,7 +31,7 @@ export default function ChatMessage({ message, onSelectQuery, onRegenerate, onEr
           <img
             src={message.image.url}
             alt={message.image.name || 'Attached image'}
-            className="max-h-52 w-full rounded-lg border border-outline-variant object-cover"
+            className="max-h-52 w-full rounded-sm border border-outline object-cover"
           />
         )}
         {message.image && !message.image.url && (
@@ -47,9 +46,9 @@ export default function ChatMessage({ message, onSelectQuery, onRegenerate, onEr
   if (message.kind === 'thinking') {
     return (
       <AssistantTurn>
-        <div className="inline-flex items-center gap-2.5 rounded-full border border-outline-variant bg-surface-lowest px-3.5 py-2 shadow-xs">
+        <div className="inline-flex items-center gap-2.5 py-1">
           <LoadingSpinner message={null} />
-          <span className="text-body-sm text-on-surface-variant">{message.message}</span>
+          <span className="font-mono text-label-code-sm text-on-surface-variant">{message.message}</span>
         </div>
       </AssistantTurn>
     )
@@ -58,7 +57,7 @@ export default function ChatMessage({ message, onSelectQuery, onRegenerate, onEr
   if (message.kind === 'error') {
     return (
       <AssistantTurn>
-        <div className="flex items-start gap-3 rounded-xl border border-error/25 bg-error-container/40 px-4 py-3">
+        <div className="flex items-start gap-3 border-l-2 border-error bg-error-container/50 px-4 py-3">
           <Alert className="mt-0.5 h-4 w-4 shrink-0 text-error" />
           <div>
             <p className="text-body-sm font-medium text-on-error-container">Something went wrong</p>
@@ -72,16 +71,12 @@ export default function ChatMessage({ message, onSelectQuery, onRegenerate, onEr
   if (message.kind === 'gate') {
     return (
       <AssistantTurn>
-        <div className="flex flex-col gap-space-sm rounded-xl border border-primary/25 bg-primary-fixed/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-space-sm border border-primary/40 bg-primary-fixed/40 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary">
-              <Lock className="h-4 w-4" />
-            </span>
+            <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <div>
               <p className="text-body-md font-semibold text-on-surface">{message.message}</p>
-              <p className="mt-0.5 text-body-sm text-on-surface-variant">
-                It takes a few seconds and stays free.
-              </p>
+              <p className="mt-0.5 text-body-sm text-on-surface-variant">It takes a few seconds and stays free.</p>
             </div>
           </div>
           <button type="button" className="btn btn-primary shrink-0" onClick={onSignIn}>

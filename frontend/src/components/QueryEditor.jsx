@@ -5,7 +5,11 @@ export default function QueryEditor({ initialQuery, onConfirm, onCancel }) {
 
   return (
     <div className="space-y-2.5">
+      <label className="eyebrow block" htmlFor="query-editor-input">
+        Edit query
+      </label>
       <input
+        id="query-editor-input"
         value={value}
         autoFocus
         aria-label="Search query"
@@ -17,12 +21,7 @@ export default function QueryEditor({ initialQuery, onConfirm, onCancel }) {
         className="field"
       />
       <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => onConfirm(value.trim())}
-          disabled={!value.trim()}
-          className="btn btn-primary"
-        >
+        <button type="button" onClick={() => onConfirm(value.trim())} disabled={!value.trim()} className="btn btn-primary">
           Search this
         </button>
         <button type="button" onClick={onCancel} className="btn btn-ghost">

@@ -9,16 +9,10 @@
 
   body {
     @apply bg-surface font-sans text-body-md text-on-surface antialiased;
-    background-color: #f5f4ef;
-    background-image:
-      radial-gradient(70% 50% at 50% -10%, rgba(217, 119, 87, 0.14), transparent 62%),
-      radial-gradient(50% 40% at 92% 100%, rgba(168, 112, 26, 0.08), transparent 60%),
-      linear-gradient(180deg, #fbfaf6 0%, #f5f4ef 60%, #efece3 100%);
-    background-attachment: fixed;
   }
 
   ::selection {
-    @apply bg-primary/30;
+    @apply bg-primary/20;
   }
 
   button:focus-visible,
@@ -26,12 +20,14 @@
   input:focus-visible,
   textarea:focus-visible,
   [tabindex]:focus-visible {
-    @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-surface;
+    outline: 2px solid #c8613c;
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
   }
 
   ::-webkit-scrollbar-track {
@@ -39,42 +35,36 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply rounded-full border-[3px] border-solid border-transparent bg-on-surface/15 bg-clip-content;
+    @apply rounded-full border-4 border-solid border-transparent bg-on-surface/20 bg-clip-content;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-on-surface/25 bg-clip-content;
+    @apply bg-on-surface/35 bg-clip-content;
   }
 }
 
 @layer components {
+  /* ─── Wordmark ─────────────────────────────────────── */
   .wordmark {
-    @apply font-display text-[1.15rem] font-bold leading-none tracking-[-0.03em] text-on-surface;
+    @apply font-display text-[1.05rem] font-bold leading-none tracking-[-0.02em] text-on-surface;
   }
 
-  /* ─── Buttons ──────────────────────────────────────── */
+  /* ─── Eyebrow / metadata (mono, ruled) ─────────────── */
+  .eyebrow {
+    @apply font-mono text-eyebrow uppercase text-on-surface-variant;
+  }
+
+  /* ─── Buttons: ink action, hairline secondary ──────── */
   .btn {
-    @apply inline-flex select-none items-center justify-center gap-2 rounded-lg text-body-sm font-medium transition-all duration-150 disabled:pointer-events-none disabled:opacity-40;
+    @apply inline-flex select-none items-center justify-center gap-2 rounded text-body-sm font-medium transition-colors duration-150 disabled:pointer-events-none disabled:opacity-40;
   }
 
   .btn-primary {
-    @apply bg-clay px-4 py-2.5 text-on-primary hover:bg-clay-deep active:scale-[0.99];
-    background-image: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.36) 0%,
-      rgba(255, 255, 255, 0.08) 46%,
-      rgba(0, 0, 0, 0.18) 100%
-    );
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.5),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.18),
-      0 12px 30px -14px rgba(217, 119, 87, 0.85);
+    @apply bg-ink px-4 py-2.5 text-surface hover:bg-[#332f28] active:bg-[#0f0e0b];
   }
 
   .btn-secondary {
-    @apply border border-outline-variant bg-surface-low px-4 py-2.5 text-on-surface hover:border-outline hover:bg-surface-container;
-    background-image: linear-gradient(180deg, #ffffff, #f6f4ee);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    @apply border border-outline bg-transparent px-4 py-2.5 text-on-surface hover:border-ink hover:bg-surface-container;
   }
 
   .btn-ghost {
@@ -82,73 +72,59 @@
   }
 
   .btn-icon {
-    @apply rounded-lg p-2 text-on-surface-variant hover:bg-surface-container hover:text-on-surface;
+    @apply rounded p-2 text-on-surface-variant hover:bg-surface-container hover:text-on-surface;
   }
 
-  /* ─── Fields ───────────────────────────────────────── */
+  /* ─── Fields: ruled, no fill ───────────────────────── */
   .field {
-    @apply w-full rounded-lg border border-outline-variant bg-surface-low px-3.5 py-2.5 text-body-md text-on-surface transition-colors placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none;
+    @apply w-full rounded border border-outline bg-transparent px-3.5 py-2.5 text-body-md text-on-surface transition-colors placeholder:text-on-surface-variant/60 focus:border-ink focus:outline-none;
   }
 
-  /* ─── Cards ────────────────────────────────────────── */
+  /* ─── Paper panel: hairline frame, no shadow ───────── */
   .card {
-    @apply rounded-xl border border-outline-variant bg-surface-lowest shadow-card;
-    background-image: linear-gradient(180deg, #ffffff, #fbfaf6);
+    @apply rounded border border-outline-variant bg-surface-lowest;
   }
 
   .card-interactive {
-    @apply card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-card-hover;
+    @apply card transition-colors duration-150 hover:border-outline;
   }
 
-  /* ─── Chips ────────────────────────────────────────── */
+  /* ─── Chips: small ruled tags, not pills ───────────── */
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-outline-variant bg-surface-low px-3 py-1.5 text-body-sm text-on-surface-variant transition-colors hover:border-outline hover:text-on-surface;
+    @apply inline-flex items-center gap-1.5 rounded-sm border border-outline-variant bg-transparent px-2.5 py-1 font-mono text-label-code-sm text-on-surface-variant transition-colors hover:border-ink hover:text-on-surface;
   }
 
-  /* ─── Numeric score (gold = confidence) ────────────── */
+  /* ─── Score: mono marker, coral for strong ─────────── */
   .score {
-    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-label-code-sm font-semibold tabular-nums;
+    @apply inline-flex items-center gap-1 font-mono text-label-code-sm tabular-nums;
   }
 
   .score-high {
-    @apply bg-accent-soft text-accent-ink;
+    @apply text-primary;
   }
 
   .score-mid {
-    @apply bg-surface-high text-on-surface-variant;
+    @apply text-on-surface-variant;
   }
 
-  /* ─── Meta pill ────────────────────────────────────── */
+  /* ─── Meta pill: mono, hairline ────────────────────── */
   .pill {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-outline-variant px-2.5 py-1 text-label-code-sm tabular-nums text-on-surface-variant;
+    @apply inline-flex items-center gap-1.5 rounded-sm border border-outline-variant px-2.5 py-1 font-mono text-label-code-sm tabular-nums text-on-surface-variant;
   }
 
-  /* ─── Progress bar ─────────────────────────────────── */
+  /* ─── Progress: 2px rule, coral fill ───────────────── */
   .progress-bar {
-    @apply h-1.5 w-full overflow-hidden rounded-full bg-surface-high;
+    @apply h-0.5 w-full overflow-hidden bg-outline-variant;
   }
 
-  /* ─── Result body ──────────────────────────────────── */
+  /* ─── Rules ────────────────────────────────────────── */
+  .rule {
+    @apply h-px w-full bg-outline-variant;
+  }
+
+  /* ─── Result row: ruled list item, not a card ──────── */
   .result-article {
-    @apply card-interactive block p-4;
-  }
-}
-
-@layer utilities {
-  .grid-fade {
-    background-image: linear-gradient(rgba(25, 25, 25, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(25, 25, 25, 0.05) 1px, transparent 1px);
-    background-size: 30px 30px;
-    mask-image: radial-gradient(68% 58% at 50% 0%, black, transparent 74%);
-    -webkit-mask-image: radial-gradient(68% 58% at 50% 0%, black, transparent 74%);
-  }
-
-  .glass {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 44%),
-      linear-gradient(180deg, rgba(252, 251, 247, 0.92), rgba(240, 238, 230, 0.82));
-    backdrop-filter: blur(22px) saturate(140%);
-    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    @apply block py-4;
   }
 }
 
