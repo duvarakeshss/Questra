@@ -186,7 +186,7 @@ export default function Composer({ onSubmit, onSearch, onError, disabled = false
   const hasAttachment = Boolean(image || audio)
 
   return (
-    <div className="glass overflow-hidden rounded-2xl border border-white/10 shadow-composer transition-colors focus-within:border-primary/70">
+    <div className="rounded-2xl transition-colors">
       {hasAttachment && (
         <div className="flex flex-wrap gap-2 border-b border-outline-variant/70 px-3 pt-3">
           {image && (
@@ -219,7 +219,7 @@ export default function Composer({ onSubmit, onSearch, onError, disabled = false
         onChange={(event) => setText(event.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Ask anything — attach a picture or say it out loud…"
-        className="max-h-[200px] w-full resize-none bg-transparent px-4 pt-3.5 text-body-lg leading-relaxed text-on-surface outline-none placeholder:text-on-surface-variant/50"
+        className="max-h-[200px] w-full resize-none bg-transparent px-4 pt-3.5 text-body-lg leading-relaxed text-on-surface outline-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-on-surface-variant/50"
       />
 
       <div className="flex items-center justify-between gap-2 px-3 pb-2.5 pt-1">

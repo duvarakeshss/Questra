@@ -306,7 +306,7 @@ export default function App() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="glass flex items-center justify-between border-b border-white/10 px-space-md py-2.5">
+        <header className="glass flex items-center justify-between border-b border-outline-variant px-space-md py-2.5">
           <div className="flex items-center gap-space-sm">
             <button type="button" className="btn-icon md:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
               <Menu />
@@ -396,7 +396,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="glass border-t border-outline-variant px-space-md py-space-sm">
+            <div className="px-space-md py-space-sm">
               <div className="mx-auto w-full max-w-3xl">
                 {error && <p className="pb-space-xs text-body-sm text-error">{error}</p>}
                 <Composer onSubmit={handleSubmit} onSearch={handleSelectQuery} onError={setError} disabled={busy} />

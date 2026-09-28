@@ -70,14 +70,14 @@ export default function Sidebar({
     <>
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-[2px] md:hidden"
+          className="fixed inset-0 z-30 bg-inverse-surface/40 backdrop-blur-[2px] md:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
       <aside
-        className={`glass fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-white/10 transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 ${
+        className={`glass fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-outline-variant transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -120,8 +120,8 @@ export default function Sidebar({
                           title={conversation.title}
                           className={`w-full rounded-lg px-3 py-2 pr-10 text-left transition-colors ${
                             isActive
-                              ? 'bg-white/10 text-on-surface'
-                              : 'text-on-surface-variant hover:bg-white/[0.06] hover:text-on-surface'
+                              ? 'bg-primary/12 text-on-surface'
+                              : 'text-on-surface-variant hover:bg-black/[0.04] hover:text-on-surface'
                           }`}
                         >
                           <p className="truncate text-body-sm font-medium">{conversation.title}</p>
@@ -137,7 +137,7 @@ export default function Sidebar({
                               event.stopPropagation()
                               requestDelete(conversation)
                             }}
-                            className="absolute right-1.5 top-1.5 rounded-md p-1.5 text-on-surface-variant opacity-0 transition-opacity hover:bg-white/10 hover:text-error focus-visible:opacity-100 group-hover:opacity-100"
+                            className="absolute right-1.5 top-1.5 rounded-md p-1.5 text-on-surface-variant opacity-0 transition-opacity hover:bg-black/[0.06] hover:text-error focus-visible:opacity-100 group-hover:opacity-100"
                             aria-label={`Delete search: ${conversation.title}`}
                             title="Delete search"
                           >
@@ -162,7 +162,7 @@ export default function Sidebar({
                               <button
                                 type="button"
                                 onClick={() => setConfirmId(null)}
-                                className="rounded-md px-2 py-1 text-caption text-on-surface-variant hover:bg-white/10 hover:text-on-surface"
+                                className="rounded-md px-2 py-1 text-caption text-on-surface-variant hover:bg-black/[0.06] hover:text-on-surface"
                               >
                                 Cancel
                               </button>
@@ -178,7 +178,7 @@ export default function Sidebar({
           )}
         </nav>
 
-        <div className="border-t border-white/10 p-space-sm">
+        <div className="border-t border-outline-variant p-space-sm">
           {account?.authenticated ? (
             <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-body-sm font-semibold text-on-primary">
