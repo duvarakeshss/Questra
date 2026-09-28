@@ -351,7 +351,7 @@ export default function App() {
                 </h1>
                 <p className="mx-auto mt-space-sm max-w-lg text-body-lg text-on-surface-variant">
                   Questra turns a photo, a voice note, or a few loose words into clear search queries you can
-                  review and refine before you commit.
+                  review and refine — or send your words straight to results.
                 </p>
               </div>
 
@@ -359,7 +359,7 @@ export default function App() {
                 <p className="pb-space-sm text-center text-body-sm text-error">{error}</p>
               )}
 
-              <Composer onSubmit={handleSubmit} onError={setError} disabled={busy} autoFocus />
+              <Composer onSubmit={handleSubmit} onSearch={handleSelectQuery} onError={setError} disabled={busy} autoFocus />
 
               <div className="mt-space-md flex flex-wrap justify-center gap-2">
                 {EXAMPLES.map((example) => (
@@ -399,9 +399,9 @@ export default function App() {
             <div className="glass border-t border-outline-variant px-space-md py-space-sm">
               <div className="mx-auto w-full max-w-3xl">
                 {error && <p className="pb-space-xs text-body-sm text-error">{error}</p>}
-                <Composer onSubmit={handleSubmit} onError={setError} disabled={busy} />
+                <Composer onSubmit={handleSubmit} onSearch={handleSelectQuery} onError={setError} disabled={busy} />
                 <p className="pt-space-xs text-center text-caption text-on-surface-variant">
-                  Review the suggested queries before trusting the results.
+                  Press Enter to draft query ideas, or Search now to run your words straight away.
                 </p>
               </div>
             </div>

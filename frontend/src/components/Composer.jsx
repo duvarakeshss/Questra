@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { ArrowUp, Close, Image as ImageIcon, Mic, Stop } from './Icons'
+import { ArrowUp, Close, Image as ImageIcon, Mic, Search, Stop } from './Icons'
 
 const MAX_IMAGE_MB = 10
 const MAX_AUDIO_MB = 25
@@ -48,7 +48,7 @@ function describeMicError(error) {
   }
 }
 
-export default function Composer({ onSubmit, onError, disabled = false, autoFocus = false }) {
+export default function Composer({ onSubmit, onSearch, onError, disabled = false, autoFocus = false }) {
   const [text, setText] = useState('')
   const [image, setImage] = useState(null)
   const [imageUrl, setImageUrl] = useState(null)
@@ -166,6 +166,16 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
     setAudio(null)
   }
 
+  function searchNow() {
+    const value = text.trim()
+    if (!value || disabled) return
+    onError(null)
+    onSearch?.(value)
+    setText('')
+    setImage(null)
+    setAudio(null)
+  }
+
   function handleKeyDown(event) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
@@ -247,14 +257,29 @@ export default function Composer({ onSubmit, onError, disabled = false, autoFocu
 
         <div className="flex items-center gap-2">
           {hasContent && (
-            <span className="hidden text-caption text-on-surface-variant sm:inline">Enter to search</span>
+            <span className="hidden text-caption text-on-surface-variant sm:inline">
+              {text.trim() ? 'Enter for ideas' : 'Enter to continue'}
+            </span>
+          )}
+          {text.trim() && (
+            <button
+              type="button"
+              onClick={searchNow}
+              disabled={disabled}
+              className="btn btn-secondary gap-1.5 rounded-full py-2"
+              title="Search your text directly, skipping suggested queries"
+            >
+              <Search className="h-4 w-4" />
+              Search now
+            </button>
           )}
           <button
             type="button"
             onClick={submit}
             disabled={!hasContent || disabled}
             className="btn btn-primary rounded-full px-3 py-2"
-            aria-label="Search"
+            aria-label="Suggest queries"
+            title="Draft query ideas from your input"
           >
             <ArrowUp className="h-4 w-4" />
           </button>
