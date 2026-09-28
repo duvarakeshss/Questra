@@ -284,7 +284,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface">
+    <div className="relative flex h-screen overflow-hidden bg-transparent">
       <Sidebar
         conversations={conversations.filter((conversation) => conversation.messages.length > 0)}
         activeId={active.id}

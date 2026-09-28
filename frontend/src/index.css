@@ -9,7 +9,12 @@
 
   body {
     @apply bg-surface font-sans text-body-md text-on-surface antialiased;
-    background-image: radial-gradient(120% 80% at 50% -20%, rgba(124, 92, 255, 0.14), transparent 62%);
+    background-color: #0a0817;
+    background-image:
+      radial-gradient(80% 55% at 50% -8%, rgba(124, 92, 255, 0.3), transparent 62%),
+      radial-gradient(55% 45% at 88% 98%, rgba(196, 181, 253, 0.13), transparent 60%),
+      radial-gradient(42% 38% at 3% 88%, rgba(245, 181, 68, 0.08), transparent 60%),
+      linear-gradient(180deg, #120d28 0%, #0a0817 62%, #070510 100%);
     background-attachment: fixed;
   }
 
@@ -54,11 +59,23 @@
   }
 
   .btn-primary {
-    @apply bg-primary px-4 py-2.5 text-on-primary shadow-glow hover:bg-clay-deep active:scale-[0.99];
+    @apply bg-primary px-4 py-2.5 text-on-primary hover:bg-clay-deep active:scale-[0.99];
+    background-image: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.36) 0%,
+      rgba(255, 255, 255, 0.08) 46%,
+      rgba(0, 0, 0, 0.18) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+      0 12px 30px -14px rgba(124, 92, 255, 0.9);
   }
 
   .btn-secondary {
     @apply border border-outline-variant bg-surface-low px-4 py-2.5 text-on-surface hover:border-outline hover:bg-surface-container;
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 56%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .btn-ghost {
@@ -77,6 +94,7 @@
   /* ─── Cards ────────────────────────────────────────── */
   .card {
     @apply rounded-xl border border-outline-variant bg-surface-lowest shadow-card;
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 44%);
   }
 
   .card-interactive {
@@ -136,9 +154,11 @@
   }
 
   .glass {
-    background: linear-gradient(180deg, rgba(44, 38, 88, 0.72), rgba(22, 19, 44, 0.66));
-    backdrop-filter: blur(20px) saturate(150%);
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 38%),
+      linear-gradient(180deg, rgba(40, 34, 80, 0.66), rgba(18, 15, 36, 0.6));
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
   }
 }
 
