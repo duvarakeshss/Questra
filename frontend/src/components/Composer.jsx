@@ -186,7 +186,7 @@ export default function Composer({ onSubmit, onSearch, onError, disabled = false
   const hasAttachment = Boolean(image || audio)
 
   return (
-    <div className="rounded-2xl transition-colors">
+    <div className="rounded-2xl border border-outline-variant bg-transparent transition-colors focus-within:border-primary/70">
       {hasAttachment && (
         <div className="flex flex-wrap gap-2 border-b border-outline-variant/70 px-3 pt-3">
           {image && (
