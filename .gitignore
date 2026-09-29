@@ -60,3 +60,7 @@ test-results/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+.codex/
+questra_docs/
+.agents/
