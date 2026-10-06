@@ -96,10 +96,12 @@ npm install
 npm run dev
 ```
 
-Open [localhost:5173](http://localhost:5173). Vite proxies `/api` requests to `http://localhost:8000`.
+Open [localhost:5173](http://localhost:5173). API calls go to `VITE_BACKEND_URL` when it is set;
+otherwise Vite proxies `/api` requests to `http://localhost:8000`.
 
-To enable Supabase sign-in, copy `frontend/.env.example` to `frontend/.env` and set
-`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Configure the corresponding Supabase settings in
+Copy `frontend/.env.example` to `frontend/.env` and set `VITE_BACKEND_URL` to the backend origin
+(for example `http://localhost:8000`). To enable Supabase sign-in, set `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_ANON_KEY`. Configure the corresponding Supabase settings in
 `backend/.env` as well. See the [Supabase setup guide](plan/supabase-setup.md). Without Supabase, the
 backend uses local SQLite for anonymous query usage; frontend sign-in is unavailable.
 
@@ -119,6 +121,7 @@ Backend settings are read from `backend/.env`; frontend settings use Vite variab
 | `QUOTA_WINDOW_HOURS` | Anonymous quota window (default: `24`) |
 | `QUOTA_DB_PATH` | Local SQLite usage database path when Supabase usage storage is unavailable |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins (default: `http://localhost:5173`) |
+| `VITE_BACKEND_URL` | Backend origin the browser calls (`<url>/api`); falls back to the Vite dev proxy when unset |
 | `VITE_SUPABASE_URL` | Supabase URL for the browser client |
 | `VITE_SUPABASE_ANON_KEY` | Public Supabase key for the browser client |
 

@@ -20,7 +20,8 @@ function getAnonId() {
   }
 }
 
-const api = axios.create({ baseURL: '/api' })
+const backendUrl = import.meta.env.VITE_BACKEND_URL?.replace(/\/+$/, '')
+const api = axios.create({ baseURL: backendUrl ? `${backendUrl}/api` : '/api' })
 
 api.interceptors.request.use(async (config) => {
   config.headers['X-Anon-Id'] = getAnonId()
