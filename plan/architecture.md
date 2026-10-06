@@ -174,14 +174,15 @@ composer pinned at the bottom.
 
 | Component | Responsibility |
 |-----------|----------------|
-| `Sidebar` | Conversation list (Today / 7 days / Earlier), hover-reveal delete + confirm, account footer |
-| `Composer` | Textarea, image picker, MediaRecorder voice capture (client-side limits, mic-error mapping, file fallback) |
-| `ChatMessage` | Renders a message by `kind`: `thinking` / `error` / `gate` / `suggestions` / `results` |
-| `QuerySuggestions` + `QueryEditor` | Suggestion cards with % match, inline edit, custom query, regenerate |
-| `SearchResults` | Result cards (host, % match, snippet, thumbnail) + empty/retry state |
+| `SuggestionsPanel` | Empty-state hero: composer, example prompts, pipeline strip |
+| `Conversation` | Renders the session thread (list of turns) and the pinned composer dock; auto-scrolls to the newest turn |
+| `Turn` | One turn: the user's input bubble, then context summary, suggestion cards, and inline result cards |
+| `ComposerBar` | Text input, image picker, MediaRecorder voice capture (client-side limits, mic-error mapping, file fallback); exports a `useComposerRefs` hook |
+| `Sidebar` | Session list (chronological) with hover-reveal delete + confirm, account footer |
+| `TopBar` | Brand notch, quota pill, and "New" action |
 | `AuthModal` | Sign up → OTP → verify, and sign in |
-| `QuotaBadge` | Header pill: "N free queries left" / "Unlimited" |
-| `Icons`, `LoadingSpinner` | SVG set and a small loading indicator |
+| `QueryEditor` | Inline editor for a single suggestion |
+| `Aurora`, `Icons` | Ambient background and the SVG icon set |
 
 ### Services & hooks
 
@@ -195,11 +196,14 @@ composer pinned at the bottom.
 
 ### State (`App.jsx`)
 
-`conversations` + `activeId` (persisted to `localStorage`), `account` (from `GET /api/me`),
-`busy`, `error`, `sidebarOpen`, `authOpen`/`authMessage`, and a `gateRef` holding the request that
-hit the quota. Generation is a single `runGeneration(messageId, inputs)` used by both submit and
-regenerate; its error path handles quota (`429` → gate card + auth modal), session expiry (`401` →
-sign out + re-auth), and everything else (error card).
+`entries` (each a session with a `turns[]` conversation) + `activeId` (persisted to `localStorage`
+under `questra.console.v2`, migrating the older `questra.console.v1` shape), `draft`, `status`,
+`error`, `account` (from `GET /api/me`), and `authOpen`/`authMessage`. Submitting input **appends a
+turn** to the active session (creating one only when there is none) and runs `runSuggestions` for
+that turn; running a suggestion calls `handleSearch(turnId, query)` and patches that turn's results.
+A per-turn `loading` flag drives the skeletons, and `pendingRef` holds a turn that hit the quota so
+authentication can retry it. Because history lives in the turns, results render inline and earlier
+turns stay visible.
 
 ---
 
@@ -241,9 +245,8 @@ Questra/
 │   └── README.md
 ├── frontend/
 │   ├── src/
-│   │   ├── components/            # Sidebar, Composer, ChatMessage, QuerySuggestions,
-│   │   │                          #   QueryEditor, SearchResults, AuthModal,
-│   │   │                          #   QuotaBadge, Icons, LoadingSpinner
+│   │   ├── components/            # SuggestionsPanel, Conversation, Turn, ComposerBar,
+│   │   │                          #   Sidebar, TopBar, AuthModal, QueryEditor, Icons, Aurora
 │   │   ├── hooks/useAuth.js
 │   │   ├── services/              # api.js, supabase.js
 │   │   ├── App.jsx, main.jsx, index.css

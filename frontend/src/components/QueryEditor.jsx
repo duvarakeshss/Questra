@@ -4,8 +4,8 @@ export default function QueryEditor({ initialQuery, onConfirm, onCancel }) {
   const [value, setValue] = useState(initialQuery)
 
   return (
-    <div className="space-y-2.5">
-      <label className="eyebrow block" htmlFor="query-editor-input">
+    <div className="space-y-3">
+      <label className="label block" htmlFor="query-editor-input">
         Edit query
       </label>
       <input
@@ -21,10 +21,10 @@ export default function QueryEditor({ initialQuery, onConfirm, onCancel }) {
         className="field"
       />
       <div className="flex gap-2">
-        <button type="button" onClick={() => onConfirm(value.trim())} disabled={!value.trim()} className="btn btn-primary">
-          Search this
+        <button type="button" onClick={() => onConfirm(value.trim())} disabled={!value.trim()} className="btn btn-accent px-4 py-2">
+          Run
         </button>
-        <button type="button" onClick={onCancel} className="btn btn-ghost">
+        <button type="button" onClick={onCancel} className="btn btn-ghost px-3 py-2">
           Cancel
         </button>
       </div>

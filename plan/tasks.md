@@ -321,6 +321,22 @@ Each phase must be completed before its dependents can begin (see dependency col
 
 ---
 
+## Phase 15: Persistent Conversation Sessions
+**Depends on**: Phase 14
+**Estimated effort**: Medium
+
+- [x] Model each session as a conversation: `entries[].turns[]` (input, context, suggestions, query, results)
+- [x] Append a new turn on each submit instead of creating a new session per input; keep the active session
+- [x] `runSuggestions(entryId, turnId, inputs)` + `handleSearch(turnId, query)` patch the owning turn
+- [x] Per-turn `loading` state drives inline skeletons; `pendingRef` retries a quota-gated turn after sign-in
+- [x] `ComposerBar` extracted as a persistent, always-available composer (owns modes + recording hook)
+- [x] `Conversation` + `Turn` render the full thread with inline results; `SuggestionsPanel` is the empty-state hero
+- [x] Persist turns to `localStorage` (`questra.console.v2`) with migration from `questra.console.v1`
+- [x] Removed dead `ChatMessage`, `QuerySuggestions`, `SearchResults`, `QuotaBadge`, `LoadingSpinner`, `Composer`, `ResultsPanel`
+- [x] Verify: two submits → one session with two turns; history survives reload and Recent restore
+
+---
+
 ## Summary
 
 | Phase | Description | Status | Files |
@@ -339,3 +355,4 @@ Each phase must be completed before its dependents can begin (see dependency col
 | 12 | Evaluation | Completed | evaluation/*, tests/test_evaluation.py |
 | 13 | Supabase Auth & Quota | Completed (live table pending) | services/{supabase_client,auth_service,quota_service}.py, api/{deps,routes_me}.py, supabase/schema.sql |
 | 14 | UI Redesign | Completed | App.jsx, components/*, services/supabase.js, hooks/useAuth.js |
+| 15 | Persistent Conversation Sessions | Completed | App.jsx (turns), components/{ComposerBar,Conversation,Turn}.jsx |

@@ -1,14 +1,31 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { Close, Lock, Mail } from './Icons'
+import { Brand, Close, Lock, Mail } from './Icons'
 
 function Field({ icon, ...props }) {
   return (
-    <label className="flex items-center gap-2.5 rounded border border-outline bg-surface-lowest px-3.5 py-2.5 transition-colors focus-within:border-ink">
-      <span className="text-on-surface-variant">{icon}</span>
+    <label
+      className="flex items-center gap-2.5 rounded-xl px-3.5 py-3 transition-all duration-180"
+      style={{
+        border: '1px solid var(--border)',
+        background: 'rgba(255,255,255,0.04)',
+      }}
+      onFocusCapture={(e) => {
+        e.currentTarget.style.borderColor = 'rgba(212,177,106,0.40)'
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(212,177,106,0.12)'
+        e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+      }}
+      onBlurCapture={(e) => {
+        e.currentTarget.style.borderColor = 'var(--border)'
+        e.currentTarget.style.boxShadow = 'none'
+        e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+      }}
+    >
+      <span style={{ color: 'var(--muted)' }}>{icon}</span>
       <input
         {...props}
-        className="w-full bg-transparent text-[16px] text-on-surface outline-none placeholder:text-on-surface-variant/60 sm:text-body-md"
+        className="w-full bg-transparent text-[16px] text-ink outline-none sm:text-body"
+        style={{ caretColor: 'var(--a1)' }}
       />
     </label>
   )
@@ -100,7 +117,8 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-inverse-surface/30"
+        className="absolute inset-0 cursor-default"
+        style={{ background: 'rgba(10,10,13,0.70)', backdropFilter: 'blur(8px)' }}
       />
       <div
         ref={panelRef}
@@ -108,38 +126,51 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="relative w-full max-w-md overflow-hidden rounded border border-outline bg-surface-lowest shadow-pop focus:outline-none"
+        className="glass-panel animate-pop-in relative w-full max-w-md overflow-hidden focus:outline-none"
+        style={{ borderRadius: '1.5rem' }}
       >
-        <div className="flex items-center justify-between border-b border-outline-variant px-6 py-3">
-          <span className="eyebrow">Questra account</span>
-          <button type="button" onClick={onClose} aria-label="Close" className="btn-icon">
+        <div
+          className="flex items-center justify-between px-5 py-3.5"
+          style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.03)' }}
+        >
+          <span className="flex items-center gap-2">
+            <Brand className="h-6 w-6" />
+            <span className="text-body-sm font-semibold text-ink">Questra account</span>
+          </span>
+          <button type="button" onClick={onClose} aria-label="Close" className="btn-icon h-8 w-8">
             <Close />
           </button>
         </div>
 
-        <div className="px-6 py-6">
-          <h2 className="font-display text-headline-md text-on-surface">{title}</h2>
-          <p className="pt-1.5 text-body-sm leading-relaxed text-on-surface-variant">
+        <div className="px-5 py-6">
+          <h2 className="font-display text-title text-gold-gradient">{title}</h2>
+          <p className="pt-2 text-body-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
             {step === 'otp'
               ? `We sent a 6-digit code to ${email}. Enter it below to verify your account.`
               : message || 'Sign in to run unlimited searches. Your free queries are always saved first.'}
           </p>
 
           {!auth.configured && (
-            <p className="mt-space-md rounded border border-outline bg-surface-low px-3 py-2 text-body-sm text-on-surface-variant">
-              Auth isn&apos;t configured yet. Add <code className="font-mono text-label-code-sm">VITE_SUPABASE_URL</code> and{' '}
-              <code className="font-mono text-label-code-sm">VITE_SUPABASE_ANON_KEY</code> to enable it.
+            <p
+              className="mt-4 rounded-xl px-3.5 py-3 text-body-sm"
+              style={{ border: '1px solid var(--border)', background: 'rgba(255,255,255,0.04)', color: 'var(--muted)' }}
+            >
+              Auth isn&apos;t configured yet. Add <code className="font-mono text-meta" style={{ color: 'var(--a1)' }}>VITE_SUPABASE_URL</code> and{' '}
+              <code className="font-mono text-meta" style={{ color: 'var(--a1)' }}>VITE_SUPABASE_ANON_KEY</code> to enable it.
             </p>
           )}
 
           {error && (
-            <p className="mt-space-md rounded border-l-2 border-error bg-error-container/50 px-3 py-2 text-body-sm text-on-error-container">
+            <p
+              className="mt-4 rounded-xl px-3.5 py-3 text-body-sm text-danger-bright"
+              style={{ border: '1px solid rgba(220,38,38,0.30)', background: 'rgba(220,38,38,0.10)' }}
+            >
               {error}
             </p>
           )}
 
           {step === 'credentials' ? (
-            <form onSubmit={submitCredentials} className="mt-space-lg space-y-space-sm">
+            <form onSubmit={submitCredentials} className="mt-5 space-y-2.5">
               <Field
                 icon={<Mail />}
                 type="email"
@@ -161,14 +192,15 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
               />
-              <button type="submit" className="btn btn-primary w-full" disabled={busy || !auth.configured}>
+              <button type="submit" className="btn btn-accent w-full py-3" disabled={busy || !auth.configured}>
                 {busy ? 'Working…' : mode === 'signup' ? 'Create account' : 'Sign in'}
               </button>
-              <p className="pt-1 text-center text-body-sm text-on-surface-variant">
+              <p className="pt-1 text-center text-body-sm" style={{ color: 'var(--muted)' }}>
                 {mode === 'signup' ? 'Already have an account?' : 'New to Questra?'}{' '}
                 <button
                   type="button"
-                  className="font-medium text-primary hover:underline"
+                  className="font-medium hover:underline"
+                  style={{ color: 'var(--a1)' }}
                   onClick={() => {
                     setMode(mode === 'signup' ? 'login' : 'signup')
                     setError(null)
@@ -179,7 +211,7 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
               </p>
             </form>
           ) : (
-            <form onSubmit={submitOtp} className="mt-space-lg space-y-space-sm">
+            <form onSubmit={submitOtp} className="mt-5 space-y-2.5">
               <label className="block">
                 <input
                   inputMode="numeric"
@@ -191,15 +223,30 @@ export default function AuthModal({ open, onClose, auth, message, onAuthenticate
                   value={token}
                   onChange={(event) => setToken(event.target.value.replace(/\D/g, ''))}
                   placeholder="••••••"
-                  className="w-full rounded border border-outline bg-surface-lowest py-3 text-center font-mono text-[22px] tracking-[0.5em] text-on-surface outline-none focus:border-ink"
+                  className="w-full rounded-xl py-3 text-center font-mono text-[22px] tracking-[0.5em] text-ink outline-none transition-all duration-180"
+                  style={{
+                    border: '1px solid var(--border)',
+                    background: 'rgba(255,255,255,0.04)',
+                    caretColor: 'var(--a1)',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(212,177,106,0.40)'
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(212,177,106,0.12)'
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border)'
+                    e.currentTarget.style.boxShadow = 'none'
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                  }}
                 />
               </label>
-              <button type="submit" className="btn btn-primary w-full" disabled={busy || token.length < 6}>
+              <button type="submit" className="btn btn-accent w-full py-3" disabled={busy || token.length < 6}>
                 {busy ? 'Verifying…' : 'Verify and continue'}
               </button>
               <button
                 type="button"
-                className="btn btn-ghost w-full"
+                className="btn btn-ghost w-full py-2.5"
                 onClick={() => {
                   setStep('credentials')
                   setError(null)

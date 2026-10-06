@@ -1,70 +1,105 @@
 import { useEffect, useRef, useState } from 'react'
 
+import Aurora from './components/Aurora'
 import AuthModal from './components/AuthModal'
-import ChatMessage from './components/ChatMessage'
-import Composer from './components/Composer'
-import QuotaBadge from './components/QuotaBadge'
+import Composer from './components/ComposerBar'
+import Conversation from './components/Conversation'
 import Sidebar from './components/Sidebar'
-import { Brand, Menu } from './components/Icons'
+import SuggestionsPanel from './components/SuggestionsPanel'
+import TopBar from './components/TopBar'
 import { extractError, generateSuggestions, getMe, isQuotaError, isUnauthorized, search } from './services/api'
 import { useAuth } from './hooks/useAuth'
 
-const STORAGE_KEY = 'questra.conversations.v2'
+const STORAGE_KEY = 'questra.console.v2'
+const LEGACY_STORAGE_KEY = 'questra.console.v1'
 const GATE_MESSAGE = "You've used your free queries. Create a free account to keep searching."
 const EXPIRED_MESSAGE = 'Your session expired. Sign in again to continue.'
 
-const EXAMPLES = [
-  'A cozy reading nook under $300',
-  'Running shoes like this but cheaper',
-  'Explain this chart to me in plain words',
-]
-
-const READS = [
-  ['Image', 'Objects, setting, and style in a photo'],
-  ['Voice', 'What you said, transcribed cleanly'],
-  ['Notes', 'The intent behind your few words'],
-]
-
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-
-function createConversation() {
-  return { id: uid(), createdAt: Date.now(), title: 'New search', messages: [] }
-}
 
 function titleFor(inputs) {
   const text = inputs.text?.trim().replace(/\s+/g, ' ')
-  if (text) return text.length > 46 ? `${text.slice(0, 46)}…` : text
+  if (text) return text.length > 48 ? `${text.slice(0, 48)}…` : text
   if (inputs.image) return 'Image search'
   if (inputs.audio) return 'Voice search'
-  return 'New search'
+  return 'Untitled search'
 }
 
-function loadConversations() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed
-  } catch {
-    /* ignore unreadable storage */
+function makeTurn(inputs) {
+  return {
+    id: uid(),
+    createdAt: Date.now(),
+    input: {
+      text: inputs.text?.trim() || '',
+      imageName: inputs.image?.name || null,
+      audioName: inputs.audio?.name || null,
+    },
+    context: null,
+    suggestions: [],
+    query: null,
+    results: null,
+    loading: 'reading',
+    error: null,
+    gate: false,
+  }
+}
+
+function normalizeTurn(turn) {
+  return {
+    id: turn.id ?? uid(),
+    createdAt: turn.createdAt ?? Date.now(),
+    input: turn.input ?? { text: '', imageName: null, audioName: null },
+    context: turn.context ?? null,
+    suggestions: Array.isArray(turn.suggestions) ? turn.suggestions : [],
+    query: turn.query ?? null,
+    results: Array.isArray(turn.results) ? turn.results : null,
+    loading: null,
+    error: turn.error ?? null,
+    gate: false,
+  }
+}
+
+// Migrate a pre-conversation entry (single board) into a one-turn conversation so
+// existing local history is preserved rather than discarded.
+function normalizeEntry(entry) {
+  if (Array.isArray(entry.turns)) {
+    return { ...entry, turns: entry.turns.map(normalizeTurn) }
+  }
+  const hasBoard = entry.suggestions?.length || entry.results || entry.context
+  if (!hasBoard) return { ...entry, turns: [] }
+  const legacyText = entry.query || (entry.title === 'Image search' || entry.title === 'Voice search' ? '' : entry.title || '')
+  return {
+    ...entry,
+    turns: [
+      normalizeTurn({
+        createdAt: entry.createdAt,
+        input: { text: typeof legacyText === 'string' ? legacyText : '' },
+        context: entry.context,
+        suggestions: entry.suggestions,
+        query: entry.query,
+        results: entry.results,
+      }),
+    ],
+  }
+}
+
+function loadEntries() {
+  for (const key of [STORAGE_KEY, LEGACY_STORAGE_KEY]) {
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(normalizeEntry)
+    } catch {
+      /* ignore unreadable storage */
+    }
   }
   return null
 }
 
-function persist(conversations) {
+function persist(entries) {
   try {
-    const settled = conversations.map((conversation) => ({
-      ...conversation,
-      messages: conversation.messages.filter((message) => message.kind !== 'thinking'),
-    }))
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(settled, (key, value) => {
-        if (key === 'inputs') return undefined
-        if (typeof value === 'string' && value.startsWith('blob:')) return undefined
-        return value
-      }),
-    )
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
   } catch {
     /* ignore storage quota errors */
   }
@@ -72,28 +107,33 @@ function persist(conversations) {
 
 export default function App() {
   const auth = useAuth()
-  const [conversations, setConversations] = useState(() => loadConversations() ?? [createConversation()])
-  const [activeId, setActiveId] = useState(() => conversations[0].id)
-  const [account, setAccount] = useState(null)
+  const bootRef = useRef(null)
+  if (bootRef.current === null) {
+    const stored = loadEntries() ?? []
+    bootRef.current = { entries: stored, activeId: stored[0]?.id ?? null }
+  }
+
+  const [entries, setEntries] = useState(bootRef.current.entries)
+  const [activeId, setActiveId] = useState(bootRef.current.activeId)
+  const [draft, setDraft] = useState({ text: '', image: null, audio: null })
+  const [status, setStatus] = useState('idle')
   const [error, setError] = useState(null)
-  const [busy, setBusy] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [account, setAccount] = useState(null)
   const [authOpen, setAuthOpen] = useState(false)
   const [authMessage, setAuthMessage] = useState(null)
-  const gateRef = useRef(null)
-  const scrollRef = useRef(null)
 
-  const active = conversations.find((conversation) => conversation.id === activeId) ?? conversations[0]
-  const isEmpty = active.messages.length === 0
+  // Real (non-serializable) inputs per turn so regenerate works with image/audio within a session.
+  const inputsByTurnRef = useRef({})
+  const pendingRef = useRef(null)
+  const composerRefs = Composer.useComposerRefs()
+
+  const busy = status !== 'idle'
+  const activeEntry = entries.find((entry) => entry.id === activeId) ?? null
+  const turns = activeEntry?.turns ?? []
 
   useEffect(() => {
-    persist(conversations)
-  }, [conversations])
-
-  useEffect(() => {
-    const node = scrollRef.current
-    if (node) node.scrollTop = node.scrollHeight
-  }, [active.messages.length, busy])
+    persist(entries)
+  }, [entries])
 
   useEffect(() => {
     let cancelled = false
@@ -107,147 +147,137 @@ export default function App() {
     }
   }, [auth.session])
 
-  function patchActive(updater) {
-    setConversations((prev) => prev.map((c) => (c.id === activeId ? updater(c) : c)))
+  function patchEntry(id, updater) {
+    setEntries((prev) => {
+      const index = prev.findIndex((entry) => entry.id === id)
+      if (index === -1) return prev
+      const next = [...prev]
+      next[index] = updater(next[index])
+      return next
+    })
   }
 
-  function replaceMessage(id, next) {
-    patchActive((c) => ({ ...c, messages: c.messages.map((m) => (m.id === id ? next : m)) }))
-  }
-
-  function appendMessages(extra, title) {
-    patchActive((c) => ({
-      ...c,
-      title: c.messages.length === 0 && title ? title : c.title,
-      messages: [...c.messages, ...extra],
+  function patchTurn(entryId, turnId, patch) {
+    patchEntry(entryId, (entry) => ({
+      ...entry,
+      updatedAt: Date.now(),
+      turns: entry.turns.map((turn) => (turn.id === turnId ? { ...turn, ...patch } : turn)),
     }))
   }
 
-  function handleSessionExpired(messageId) {
+  function newSession() {
+    setActiveId(null)
+    setDraft({ text: '', image: null, audio: null })
+    setError(null)
+  }
+
+  function openEntry(id) {
+    if (!entries.some((entry) => entry.id === id)) return
+    setActiveId(id)
+    setError(null)
+  }
+
+  function deleteEntry(id) {
+    const remaining = entries.filter((entry) => entry.id !== id)
+    setEntries(remaining)
+    if (id === activeId) setActiveId(remaining[0]?.id ?? null)
+  }
+
+  function handleUnauthorized() {
     auth.signOut()
     setAccount(null)
     setAuthMessage(EXPIRED_MESSAGE)
     setAuthOpen(true)
-    if (messageId) {
-      replaceMessage(messageId, {
-        id: messageId,
-        role: 'assistant',
-        kind: 'error',
-        message: EXPIRED_MESSAGE,
-      })
-    }
+    setError(EXPIRED_MESSAGE)
   }
 
-  function handleGenerationError(messageId, inputs, err) {
-    if (isQuotaError(err)) {
-      gateRef.current = { id: messageId, inputs }
-      replaceMessage(messageId, { id: messageId, role: 'assistant', kind: 'gate', message: GATE_MESSAGE })
-      setAuthMessage(GATE_MESSAGE)
-      setAuthOpen(true)
-      return
-    }
-    if (isUnauthorized(err)) {
-      handleSessionExpired(messageId)
-      return
-    }
-    replaceMessage(messageId, {
-      id: messageId,
-      role: 'assistant',
-      kind: 'error',
-      message: extractError(err),
-    })
-  }
-
-  async function runGeneration(messageId, inputs) {
+  async function runSuggestions(entryId, turnId, inputs) {
+    setStatus('reading')
+    setError(null)
+    patchTurn(entryId, turnId, { loading: 'reading', error: null, gate: false })
     try {
       const data = await generateSuggestions(inputs)
       if (data.quota) {
         setAccount((prev) => ({ ...(prev ?? {}), authenticated: data.quota.authenticated, quota: data.quota }))
       }
-      replaceMessage(messageId, {
-        id: messageId,
-        role: 'assistant',
-        kind: 'suggestions',
+      patchTurn(entryId, turnId, {
         suggestions: data.suggestions ?? [],
         context: data.context ?? null,
-        inputs,
+        loading: null,
       })
     } catch (err) {
-      handleGenerationError(messageId, inputs, err)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleSubmit(inputs) {
-    if (busy) return
-    setError(null)
-    setBusy(true)
-
-    const userMessage = {
-      id: uid(),
-      role: 'user',
-      kind: 'input',
-      text: inputs.text,
-      image: inputs.image ? { name: inputs.image.name, url: URL.createObjectURL(inputs.image) } : null,
-      audio: inputs.audio ? { name: inputs.audio.name } : null,
-    }
-    const pending = {
-      id: uid(),
-      role: 'assistant',
-      kind: 'thinking',
-      message: 'Reading your input and drafting query ideas',
-    }
-    appendMessages([userMessage, pending], titleFor(inputs))
-    await runGeneration(pending.id, inputs)
-  }
-
-  async function handleSelectQuery(query) {
-    if (busy || !query) return
-    setError(null)
-    setBusy(true)
-
-    const userMessage = { id: uid(), role: 'user', kind: 'text', text: query }
-    const pending = { id: uid(), role: 'assistant', kind: 'thinking', message: 'Searching and reranking results' }
-    appendMessages([userMessage, pending], query)
-
-    try {
-      const data = await search(query)
-      replaceMessage(pending.id, {
-        id: pending.id,
-        role: 'assistant',
-        kind: 'results',
-        query: data.query || query,
-        results: data.results ?? [],
-      })
-    } catch (err) {
-      if (isUnauthorized(err)) {
-        handleSessionExpired(pending.id)
+      if (isQuotaError(err)) {
+        pendingRef.current = { entryId, turnId, inputs }
+        patchTurn(entryId, turnId, { loading: null, gate: true })
+        setAuthMessage(GATE_MESSAGE)
+        setAuthOpen(true)
+      } else if (isUnauthorized(err)) {
+        patchTurn(entryId, turnId, { loading: null })
+        handleUnauthorized()
       } else {
-        replaceMessage(pending.id, {
-          id: pending.id,
-          role: 'assistant',
-          kind: 'error',
-          message: extractError(err),
-        })
+        patchTurn(entryId, turnId, { loading: null, error: extractError(err) })
       }
     } finally {
-      setBusy(false)
+      setStatus('idle')
     }
   }
 
-  async function handleRegenerate(messageId, inputs) {
-    if (busy || !inputs) return
-    setError(null)
-    setBusy(true)
-    replaceMessage(messageId, {
-      id: messageId,
-      role: 'assistant',
-      kind: 'thinking',
-      message: 'Drafting fresh query ideas',
-    })
+  function handleDraft(inputs) {
+    if (busy) return
+    const text = inputs.text?.trim() || ''
+    if (!inputs.image && !inputs.audio && !text) {
+      setError('Add a description, image, or voice note before searching.')
+      return
+    }
+    const turn = makeTurn(inputs)
+    const entryId = activeId ?? uid()
+    inputsByTurnRef.current[turn.id] = inputs
 
-    await runGeneration(messageId, inputs)
+    if (entries.some((entry) => entry.id === entryId)) {
+      patchEntry(entryId, (entry) => ({ ...entry, updatedAt: Date.now(), turns: [...entry.turns, turn] }))
+    } else {
+      setEntries((prev) => [
+        ...prev,
+        { id: entryId, title: titleFor(inputs), createdAt: Date.now(), updatedAt: Date.now(), turns: [turn] },
+      ])
+    }
+
+    setActiveId(entryId)
+    setDraft({ text: '', image: null, audio: null })
+    setError(null)
+    runSuggestions(entryId, turn.id, inputs)
+  }
+
+  function handleRegenerate(turnId) {
+    if (busy || !activeId) return
+    const inputs = inputsByTurnRef.current[turnId]
+    if (inputs) {
+      runSuggestions(activeId, turnId, inputs)
+      return
+    }
+    const turn = turns.find((item) => item.id === turnId)
+    if (turn?.input?.text) runSuggestions(activeId, turnId, { text: turn.input.text })
+  }
+
+  async function handleSearch(turnId, query) {
+    const value = query?.trim()
+    if (busy || !value || !activeId) return
+    setStatus('searching')
+    setError(null)
+    patchTurn(activeId, turnId, { loading: 'searching', error: null })
+    try {
+      const data = await search(value)
+      patchTurn(activeId, turnId, { loading: null, query: data.query || value, results: data.results ?? [] })
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        patchTurn(activeId, turnId, { loading: null })
+        handleUnauthorized()
+      } else {
+        patchTurn(activeId, turnId, { loading: null, error: extractError(err) })
+      }
+    } finally {
+      setStatus('idle')
+    }
   }
 
   async function handleAuthenticated() {
@@ -258,189 +288,94 @@ export default function App() {
     } catch {
       /* quota refresh is best-effort */
     }
-    const gate = gateRef.current
-    gateRef.current = null
-    if (gate) handleRegenerate(gate.id, gate.inputs)
-  }
-
-  function handleNewSearch() {
-    const conversation = createConversation()
-    setConversations((prev) => [conversation, ...prev])
-    setActiveId(conversation.id)
-    setError(null)
-    setSidebarOpen(false)
-  }
-
-  function handleDeleteConversation(id) {
-    const remaining = conversations.filter((conversation) => conversation.id !== id)
-    if (remaining.length === 0) {
-      const fresh = createConversation()
-      setConversations([fresh])
-      setActiveId(fresh.id)
-    } else {
-      setConversations(remaining)
-      if (id === activeId) setActiveId(remaining[0].id)
+    const pending = pendingRef.current
+    if (pending) {
+      pendingRef.current = null
+      runSuggestions(pending.entryId, pending.turnId, pending.inputs)
     }
-    setError(null)
   }
 
-  function handleSignOut() {
-    auth.signOut()
-    setAccount(null)
-  }
+  const canRegenerate = (turnId) => Boolean(inputsByTurnRef.current[turnId])
+
+  const composerBar = (
+    <Composer
+      draft={draft}
+      onDraftChange={setDraft}
+      onSubmit={handleDraft}
+      onError={setError}
+      disabled={busy}
+      status={status}
+      recording={composerRefs.recording}
+      onStartRecording={() => composerRefs.startRecording(setError, setDraft)}
+      onStopRecording={composerRefs.stopRecording}
+      imageInputRef={composerRefs.imageInputRef}
+      audioInputRef={composerRefs.audioInputRef}
+    />
+  )
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface">
-      <Sidebar
-        conversations={conversations.filter((conversation) => conversation.messages.length > 0)}
-        activeId={active.id}
-        onSelect={(id) => {
-          setActiveId(id)
-          setError(null)
-          setSidebarOpen(false)
+    <>
+      {/* ─── Aurora background ─────── */}
+      <Aurora />
+
+      {/* ─── TopBar (Notch + Cluster) ─ */}
+      <TopBar
+        status={status}
+        quota={account?.quota}
+        authenticated={Boolean(account?.authenticated)}
+        onNew={newSession}
+        onSignIn={() => {
+          setAuthMessage(null)
+          setAuthOpen(true)
         }}
-        onNew={handleNewSearch}
-        onDelete={handleDeleteConversation}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+      />
+
+      {/* ─── Sidebar → Dock + Recent ─── */}
+      <Sidebar
+        entries={entries}
+        activeId={activeId}
+        onSelect={openEntry}
+        onDelete={deleteEntry}
+        onNew={newSession}
         account={account}
         onSignIn={() => {
           setAuthMessage(null)
           setAuthOpen(true)
         }}
-        onSignOut={handleSignOut}
+        onSignOut={() => {
+          auth.signOut()
+          setAccount(null)
+        }}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-space-md border-b border-outline-variant px-space-md py-2.5">
-          <div className="flex min-w-0 items-center gap-space-sm">
-            <button type="button" className="btn-icon md:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
-              <Menu />
-            </button>
-            <div className="flex items-center gap-2 md:hidden">
-              <Brand className="h-6 w-6" />
-              <span className="wordmark">Questra</span>
-            </div>
-            <p className="eyebrow hidden truncate md:block">Describe it · photograph it · say it</p>
-          </div>
-
-          <div className="flex items-center gap-space-sm">
-            <QuotaBadge
-              quota={account?.quota}
-              authenticated={Boolean(account?.authenticated)}
-              email={account?.email}
-              onSignIn={() => {
-                setAuthMessage(null)
-                setAuthOpen(true)
-              }}
-              onSignOut={handleSignOut}
-            />
-            <button type="button" onClick={handleNewSearch} className="btn btn-primary whitespace-nowrap py-2">
-              New search
-            </button>
-          </div>
-        </header>
-
-        {isEmpty ? (
-          <div className="flex-1 overflow-y-auto">
-            <div className="mx-auto grid w-full max-w-6xl gap-space-xl px-space-md py-12 md:grid-cols-12 md:px-space-lg">
-              <div className="md:col-span-7 md:pr-space-lg">
-                <p className="eyebrow">Multimodal query discovery</p>
-                <h1 className="mt-space-sm font-display text-display-hero text-on-surface">
-                  Find it by describing it
-                </h1>
-                <p className="mt-space-md max-w-xl text-body-lg text-on-surface-variant">
-                  Questra turns a photo, a voice note, or a few loose words into clear search queries you can
-                  review and refine, or send straight to results.
-                </p>
-
-                {error && <p className="mt-space-md text-body-sm text-error">{error}</p>}
-
-                <div className="mt-space-lg">
-                  <Composer onSubmit={handleSubmit} onSearch={handleSelectQuery} onError={setError} disabled={busy} autoFocus />
-                </div>
-
-                <div className="mt-space-xl">
-                  <p className="eyebrow">Try one</p>
-                  <ol className="mt-space-sm border-t border-outline-variant">
-                    {EXAMPLES.map((example, index) => (
-                      <li key={example} className="border-b border-outline-variant">
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => handleSubmit({ text: example })}
-                          className="group flex w-full items-baseline gap-space-md py-3 text-left"
-                        >
-                          <span className="font-mono text-label-code-sm text-on-surface-variant">
-                            {String(index + 1).padStart(2, '0')}
-                          </span>
-                          <span className="flex-1 text-body-md text-on-surface transition-colors group-hover:text-primary">
-                            {example}
-                          </span>
-                          <span className="font-mono text-label-code-sm text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                            Use
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              </div>
-
-              <aside className="md:col-span-5">
-                <div className="border-t border-outline-variant pt-space-md">
-                  <p className="eyebrow">What it reads</p>
-                  <dl className="mt-space-sm">
-                    {READS.map(([label, value]) => (
-                      <div
-                        key={label}
-                        className="grid grid-cols-[4.5rem_1fr] gap-space-md border-b border-outline-variant py-3"
-                      >
-                        <dt className="font-mono text-label-code-sm uppercase text-on-surface-variant">{label}</dt>
-                        <dd className="text-body-sm text-on-surface">{value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <p className="mt-space-md text-body-sm leading-relaxed text-on-surface-variant">
-                    All three are fused into scored, diverse query ideas before a single search runs.
-                  </p>
-                </div>
-              </aside>
-            </div>
-          </div>
+      {/* ─── Stage: hero when empty, conversation thread otherwise ───── */}
+      <main className={`stage${turns.length > 0 ? ' stage-thread' : ''}`}>
+        {turns.length === 0 ? (
+          <SuggestionsPanel
+            status={status}
+            error={error}
+            onExample={(text) => handleDraft({ text })}
+            composer={composerBar}
+          />
         ) : (
-          <>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-3xl px-space-md py-space-lg md:px-space-lg">
-                {active.messages.map((message) => (
-                  <ChatMessage
-                    key={message.id}
-                    message={message}
-                    onSelectQuery={handleSelectQuery}
-                    onRegenerate={handleRegenerate}
-                    onError={setError}
-                    onSignIn={() => {
-                      setAuthMessage(null)
-                      setAuthOpen(true)
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="border-t border-outline-variant px-space-md py-space-sm">
-              <div className="mx-auto w-full max-w-3xl">
-                {error && <p className="pb-space-xs text-body-sm text-error">{error}</p>}
-                <Composer onSubmit={handleSubmit} onSearch={handleSelectQuery} onError={setError} disabled={busy} />
-                <p className="pt-space-xs text-center font-mono text-caption text-on-surface-variant">
-                  Enter drafts query ideas · Search now runs your words directly
-                </p>
-              </div>
-            </div>
-          </>
+          <Conversation
+            turns={turns}
+            busy={busy}
+            status={status}
+            canRegenerate={canRegenerate}
+            onSelectQuery={handleSearch}
+            onRegenerate={handleRegenerate}
+            onSignIn={() => {
+              setAuthMessage(null)
+              setAuthOpen(true)
+            }}
+          >
+            {composerBar}
+          </Conversation>
         )}
-      </div>
+      </main>
 
+      {/* ─── Auth modal ───────────────── */}
       <AuthModal
         open={authOpen}
         onClose={() => setAuthOpen(false)}
@@ -448,6 +383,49 @@ export default function App() {
         message={authMessage}
         onAuthenticated={handleAuthenticated}
       />
-    </div>
+
+      {/* ─── Hidden file inputs ────────── */}
+      <input
+        ref={composerRefs.imageInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (!file) return
+          const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+          const MAX_IMAGE_MB = 10
+          if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+            setError('That image format is not supported. Use JPEG, PNG, WEBP, or GIF.')
+            return
+          }
+          if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+            setError(`Images need to be smaller than ${MAX_IMAGE_MB} MB.`)
+            return
+          }
+          setError(null)
+          setDraft((prev) => ({ ...prev, image: file }))
+          event.target.value = ''
+        }}
+      />
+      <input
+        ref={composerRefs.audioInputRef}
+        type="file"
+        accept="audio/*"
+        style={{ display: 'none' }}
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (!file) return
+          const MAX_AUDIO_MB = 25
+          if (file.size > MAX_AUDIO_MB * 1024 * 1024) {
+            setError(`Audio needs to be smaller than ${MAX_AUDIO_MB} MB.`)
+            return
+          }
+          setError(null)
+          setDraft((prev) => ({ ...prev, audio: file }))
+          event.target.value = ''
+        }}
+      />
+    </>
   )
 }
