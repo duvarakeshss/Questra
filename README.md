@@ -42,7 +42,7 @@ LLM; it presents retrieved results and their source pages.
 - **AI processing:** Groq vision, Whisper transcription, and text generation
 - **Web search:** SerpAPI
 - **Semantic ranking:** Sentence Transformers (`all-MiniLM-L6-v2`)
-- **Authentication and usage storage:** Supabase, with a local SQLite quota fallback
+- **Authentication and usage storage:** Supabase (Auth + Postgres)
 
 ## Requirements
 
@@ -103,7 +103,7 @@ Copy `frontend/.env.example` to `frontend/.env` and set `VITE_BACKEND_URL` to th
 (for example `http://localhost:8000`). To enable Supabase sign-in, set `VITE_SUPABASE_URL` and
 `VITE_SUPABASE_ANON_KEY`. Configure the corresponding Supabase settings in
 `backend/.env` as well. See the [Supabase setup guide](plan/supabase-setup.md). Without Supabase, the
-backend uses local SQLite for anonymous query usage; frontend sign-in is unavailable.
+backend runs unmetered and frontend sign-in is unavailable.
 
 ## Configuration
 
@@ -119,7 +119,6 @@ Backend settings are read from `backend/.env`; frontend settings use Vite variab
 | `SUPABASE_SERVICE_ROLE_KEY` | Backend-only key for usage storage; newer projects may use `SUPABASE_SECRET_KEY` |
 | `ANONYMOUS_FREE_QUERIES` | Anonymous suggestion generations allowed per quota window (default: `2`) |
 | `QUOTA_WINDOW_HOURS` | Anonymous quota window (default: `24`) |
-| `QUOTA_DB_PATH` | Local SQLite usage database path when Supabase usage storage is unavailable |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins (default: `http://localhost:5173`) |
 | `VITE_BACKEND_URL` | Backend origin the browser calls (`<url>/api`); falls back to the Vite dev proxy when unset |
 | `VITE_SUPABASE_URL` | Supabase URL for the browser client |
@@ -172,9 +171,10 @@ frontend/src/
 
 ## Development
 
-Run backend tests from the `backend` directory:
+Install the test tooling and run the backend tests from the `backend` directory:
 
 ```bash
+pip install -r requirements-dev.txt
 pytest tests/ -v
 ```
 
@@ -190,6 +190,22 @@ Build the frontend from the `frontend` directory:
 ```bash
 npm run build
 ```
+
+## Deploy
+
+Both apps ship as Docker images; `docker-compose.yml` runs them together.
+
+```bash
+docker compose up --build
+```
+
+- **Backend** (`backend/Dockerfile`) reads configuration from environment variables first, with
+  `.env` as a fallback (`ENV_FILE` overrides its path), and binds `$PORT`.
+- **Frontend** (`frontend/Dockerfile`) builds the Vite app and serves it with nginx. `VITE_*`
+  values are baked in at build time, so pass `VITE_BACKEND_URL`, `VITE_SUPABASE_URL`, and
+  `VITE_SUPABASE_ANON_KEY` as build args.
+
+Set `CORS_ORIGINS` on the backend to the deployed frontend origin.
 
 ## Security notes
 

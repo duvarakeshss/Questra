@@ -68,6 +68,7 @@ source .venv/bin/activate
 
 # 2. Install dependencies
 pip install -r requirements.txt
+pip install -r requirements-dev.txt   # pytest, for the test suite
 
 # 3. Create your env file and fill in the keys
 # Windows:
@@ -88,7 +89,12 @@ Leave the venv activated for every backend command. Never commit `.env` or `.ven
 Auth and the free-query quota need Supabase: add `SUPABASE_URL` + keys to `.env`, run
 `backend/supabase/schema.sql`, and enable email OTP + custom SMTP in the dashboard — see
 [supabase-setup.md](supabase-setup.md). If Supabase is unconfigured (or the usage table is
-missing) the quota falls back to a local SQLite store so the limit still holds.
+missing) the quota runs unmetered rather than blocking requests.
+
+Configuration is read from real environment variables first, with `.env` as a fallback (the path
+comes from `ENV_FILE` when set, otherwise `backend/.env` resolved from the package — not the
+working directory). To deploy, build the container: `docker build -t questra-backend ./backend`,
+or `docker compose up --build` from the repo root to run the backend and frontend together.
 
 ---
 
@@ -110,6 +116,7 @@ for the app to work end to end.
 | Task | Command | Where |
 |------|---------|-------|
 | Install backend deps | `pip install -r requirements.txt` | `backend/` (venv active) |
+| Install test tooling | `pip install -r requirements-dev.txt` | `backend/` (venv active) |
 | Run backend | `uvicorn app:app --reload --port 8000` | `backend/` (venv active) |
 | Backend tests | `pytest tests/ -v` | `backend/` (venv active) |
 | Install frontend deps | `npm install` | `frontend/` |

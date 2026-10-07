@@ -127,7 +127,7 @@ other's internals; external providers sit behind services.
 | `services/search_service.py` | SerpAPI wrapper + normalization |
 | `services/supabase_client.py` | lazy admin (secret) + public (publishable) clients |
 | `services/auth_service.py` | validate a Supabase access token → `AuthUser` |
-| `services/quota_service.py` | windowed usage counting; Supabase-first with SQLite fallback |
+| `services/quota_service.py` | windowed usage counting; Supabase-only (runs unmetered when unreachable) |
 | `models/schemas.py` | Pydantic v2 request/response + domain models |
 | `config/settings.py` | Pydantic Settings from `.env` + key-alias properties |
 | `evaluation/*` | offline metrics, baselines, benchmark harness, CLI |
@@ -142,8 +142,8 @@ other's internals; external providers sit behind services.
   - anonymous → `ANONYMOUS_FREE_QUERIES` (default **2**), keyed by `X-Anon-Id`, else client IP.
   - Over the limit → `429 QUOTA_EXCEEDED`; the frontend opens the login popup.
 - `quota_service` counts rows in `public.query_usage` inside a rolling `QUOTA_WINDOW_HOURS`
-  window. If that table is unreachable (or Supabase is unconfigured) it **falls back to a local
-  SQLite file** (`QUOTA_DB_PATH`) so the limit always holds — it never silently runs unmetered.
+  window. If that table is unreachable (or Supabase is unconfigured) it logs a warning and runs
+  **unmetered** rather than blocking requests.
 - The service-role/secret key is **backend-only**; the frontend only gets the publishable/anon key.
 
 ### 3.4 Evaluation (offline)
@@ -227,7 +227,7 @@ Questra/
 ├── backend/
 │   ├── app.py                     # FastAPI app: CORS, error handler, routers
 │   ├── errors.py                  # QuestraError hierarchy → (code, HTTP status)
-│   ├── conftest.py                # test path + hermetic Supabase/quota fixtures
+│   ├── conftest.py                # test path + hermetic Supabase fixture
 │   ├── api/                       # deps.py, routes_health.py, routes_me.py,
 │   │                              #   routes_query.py, routes_search.py
 │   ├── pipeline/                  # speech, vision, fusion, candidate_gen,
@@ -240,7 +240,8 @@ Questra/
 │   │                              #   harness, dataset, run
 │   ├── supabase/schema.sql        # public.query_usage
 │   ├── tests/                     # 11 pytest modules (auth, quota, pipeline, api)
-│   ├── requirements.txt
+│   ├── requirements.txt / requirements-dev.txt
+│   ├── Dockerfile / .dockerignore
 │   ├── .env.example
 │   └── README.md
 ├── frontend/
@@ -252,6 +253,7 @@ Questra/
 │   │   ├── App.jsx, main.jsx, index.css
 │   ├── index.html
 │   ├── package.json, vite.config.js, tailwind.config.js, postcss.config.js
+│   ├── Dockerfile / nginx.conf / .dockerignore
 │   └── .env.example
 ├── plan/                          # all planning + design docs
 │   ├── idea.md plan.md tasks.md architecture.md agent.md supabase-setup.md
@@ -384,7 +386,6 @@ All config is environment-driven (Pydantic Settings, `extra="ignore"`). Defaults
 | `SUPABASE_USAGE_TABLE` | `query_usage` | quota table |
 | `ANONYMOUS_FREE_QUERIES` | `2` | free suggestions for logged-out visitors |
 | `QUOTA_WINDOW_HOURS` | `24` | rolling window (`0` = all-time) |
-| `QUOTA_DB_PATH` | `quota_usage.sqlite3` | SQLite fallback store |
 | `VISION_MODEL` | `qwen/qwen3.8-27b` | |
 | `GENERATION_MODEL` | `openai/gpt-oss-120b` | |
 | `WHISPER_MODEL` | `whisper-large-v3` | |
@@ -394,6 +395,7 @@ All config is environment-driven (Pydantic Settings, `extra="ignore"`). Defaults
 | `SEARCH_TOP_K` / `RERANK_TOP_K` | `10` / `5` | |
 | `MAX_IMAGE_SIZE_MB` / `MAX_AUDIO_SIZE_MB` | `10` / `25` | |
 | `CORS_ORIGINS` | `http://localhost:5173` | comma-separated |
+| `ENV_FILE` | `backend/.env` | dotenv path override (real env vars still win) |
 
 Frontend (Vite): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (public).
 
@@ -436,20 +438,24 @@ Internal details are never exposed.
 ## 15. Testing
 
 `backend/tests/` (pytest). Externals (Groq, SerpAPI, Supabase) are mocked; `conftest.py` forces a
-hermetic Supabase and a throwaway SQLite quota DB per test.
+hermetic Supabase.
 
 Covered: fusion (all 7 combinations), candidate generation, scoring, diversity/MMR, rerank,
-search, evaluation, auth dependencies, quota service (Supabase + fallback), and the API
+search, evaluation, auth dependencies, quota service (Supabase + unmetered), and the API
 (auth + quota + error envelopes).
 
 ---
 
-## 16. Deployment (local prototype)
+## 16. Deployment
 
-Two local processes, no containers:
+Runs as local processes today, and ships as containers for hosting:
 
-- **Backend:** `uvicorn app:app --reload --port 8000` (venv active).
-- **Frontend:** `npm run dev` on 5173 (Vite proxies `/api` → 8000).
+- **Local:** `uvicorn app:app --reload --port 8000` (venv active) + `npm run dev` on 5173
+  (Vite proxies `/api` → `VITE_BACKEND_URL`, default 8000).
+- **Containers:** `docker compose up --build` — backend `backend/Dockerfile`, frontend
+  `frontend/Dockerfile` builds the Vite app and serves it with nginx. The frontend image bakes
+  `VITE_*` values at build time; the backend binds `$PORT` and reads config from environment
+  variables first, falling back to `.env` (`ENV_FILE` overrides the path).
 - **Supabase:** hosted project; run `backend/supabase/schema.sql` once.
 
 See [agent.md](agent.md) and [supabase-setup.md](supabase-setup.md).
@@ -463,7 +469,7 @@ See [agent.md](agent.md) and [supabase-setup.md](supabase-setup.md).
 | Groq model catalog is account-specific | Model ids in `.env`; verify via `client.models.list()` |
 | Groq free-tier rate limits | Retry with backoff in `LLMService` |
 | Sentence Transformers slow first load | Lazy-load at startup |
-| Supabase usage table missing | Local SQLite fallback keeps the limit enforced |
+| Supabase usage table missing | Warning logged; quota runs unmetered until the table exists |
 | Anonymous quota is device-scoped | Accept for a prototype; in-app sign-in removes it |
 | LLM JSON output unreliable | Regex/line fallback extraction |
 

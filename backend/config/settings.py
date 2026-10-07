@@ -1,11 +1,15 @@
+import os
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=os.environ.get("ENV_FILE", BASE_DIR / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -36,7 +40,6 @@ class Settings(BaseSettings):
 
     anonymous_free_queries: int = 2
     quota_window_hours: int = 24
-    quota_db_path: str = "quota_usage.sqlite3"
 
     cors_origins: str = "http://localhost:5173"
 

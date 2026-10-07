@@ -73,30 +73,26 @@ def test_peek_reports_without_consuming(monkeypatch):
     assert client.state["inserted"] == []
 
 
-# ── Local SQLite fallback (Supabase cleared by the autouse fixture) ─────────
+# ── Unmetered when Supabase is unavailable (cleared by the autouse fixture) ──
 
-def test_local_store_enforces_when_supabase_unavailable():
-    first = quota_service.check_and_consume("anon:local", 2)
-    assert (first.limit, first.used, first.remaining) == (2, 1, 1)
+def test_runs_unmetered_when_supabase_unconfigured():
+    first = quota_service.check_and_consume("anon:offline", 2)
+    assert (first.limit, first.used, first.remaining) == (2, 0, 2)
 
-    second = quota_service.check_and_consume("anon:local", 2)
-    assert second.remaining == 0
-
-    with pytest.raises(QuotaExceededError):
-        quota_service.check_and_consume("anon:local", 2)
+    second = quota_service.check_and_consume("anon:offline", 2)
+    assert second.remaining == 2
 
 
-def test_local_peek_reports_without_consuming():
-    quota_service.check_and_consume("anon:peek", 2)
-    assert quota_service.peek("anon:peek", 2, authenticated=False).remaining == 1
-    assert quota_service.peek("anon:peek", 2, authenticated=False).remaining == 1
+def test_peek_is_full_when_supabase_unconfigured():
+    quota = quota_service.peek("anon:offline", 2, authenticated=False)
+    assert (quota.used, quota.remaining) == (0, 2)
 
 
-def test_falls_back_to_local_when_supabase_errors(monkeypatch):
+def test_runs_unmetered_when_supabase_errors(monkeypatch):
     class _Broken:
         def table(self, name):
             raise RuntimeError("table missing")
 
     monkeypatch.setattr(supabase_client, "admin_client", lambda: _Broken())
     quota = quota_service.check_and_consume("anon:boom", 2)
-    assert (quota.limit, quota.remaining) == (2, 1)
+    assert (quota.limit, quota.used, quota.remaining) == (2, 0, 2)

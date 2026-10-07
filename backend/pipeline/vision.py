@@ -25,7 +25,10 @@ def _validate_image(filename: str | None, mime_type: str | None, size: int) -> s
 
     if mime_type and mime_type.startswith("image/"):
         return mime_type
-    return f"image/{extension.lstrip('.') or 'jpeg'}"
+    suffix = extension.lstrip(".") or "jpeg"
+    if suffix == "jpg":
+        suffix = "jpeg"
+    return f"image/{suffix}"
 
 
 def process_image(image_bytes: bytes, filename: str, mime_type: str | None = None) -> str:

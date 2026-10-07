@@ -12,7 +12,8 @@ python -m venv .venv
 # macOS / Linux
 source .venv/bin/activate
 
-pip install -r requirements.txt
+pip install -r requirements.txt        # runtime
+pip install -r requirements-dev.txt    # + pytest for the test suite
 cp .env.example .env   # then fill in GROQ_API_KEY and SERPAPI_API_KEY
 ```
 
@@ -46,9 +47,8 @@ Auth and the database run on **Supabase** (see [../plan/supabase-setup.md](../pl
 - The service-role (secret) key is **backend-only** — never expose it to the browser.
 
 Usage is stored in `public.query_usage`. If that table is missing, or Supabase is not configured,
-the quota transparently falls back to a local SQLite file (`QUOTA_DB_PATH`) so the limit **always
-holds** — the app never silently runs unmetered. Create the table (see the setup guide) to store
-usage in Supabase instead.
+the quota logs a warning and runs **unmetered** rather than falling back to a local store. Create
+the table (see the setup guide) so the free-query limit is enforced.
 
 ## Architecture
 
@@ -87,6 +87,19 @@ python -m evaluation.run
 
 Intentionality and diversity are label-free, so the sample runs without ground truth. Attach
 `relevant_urls` (and optionally `relevance_grades`) to benchmark cases to also score search quality.
+
+## Deploy
+
+Settings come from real environment variables first, with `.env` as a fallback. The file is
+resolved relative to the package (not the working directory), and `ENV_FILE` overrides its path,
+so the same image runs anywhere.
+
+```bash
+docker build -t questra-backend ./backend
+docker run --rm -p 8000:8000 --env-file backend/.env questra-backend
+```
+
+The container binds `$PORT` (default `8000`). Set `CORS_ORIGINS` to the deployed frontend origin.
 
 ## Configuration
 

@@ -87,5 +87,5 @@ from the email, and suggestions are unlimited afterwards.
 | Anonymous without it | `ip:<addr>` | `ANONYMOUS_FREE_QUERIES` |
 
 Usage is counted within `QUOTA_WINDOW_HOURS` (default 24; set to `0` for an all-time cap).
-If Supabase is unconfigured — or `public.query_usage` is missing — the quota falls back to a local
-SQLite file (`QUOTA_DB_PATH`) so the limit still holds rather than silently disabling.
+If Supabase is unconfigured — or `public.query_usage` is missing — the quota runs unmetered (with a
+warning logged) rather than blocking requests, so create the table to enforce the limit.
